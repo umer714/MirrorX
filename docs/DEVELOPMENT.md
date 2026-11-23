@@ -1,17 +1,17 @@
 # MirrorX — Development Setup Notes
 
-This document records the intended toolchain. The repository does not contain the application source yet.
+The repository contains a React + TypeScript frontend scaffold and a Tauri 2 / Rust desktop shell. Android device integration is not implemented yet.
 
-## Planned prerequisites
+## Windows prerequisites
 
-For Windows development, install and verify:
+For native desktop development, install and verify:
 
 - Node.js LTS and npm.
 - Rust stable toolchain.
 - Microsoft C++ Build Tools with the Windows SDK.
 - Tauri 2 prerequisites for Windows.
-- Android Platform Tools (ADB).
-- A compatible scrcpy build for local development.
+- Android Platform Tools (ADB), for the upcoming device-discovery milestone.
+- A compatible scrcpy build, for the upcoming mirroring milestone.
 
 Use the official installation instructions for each tool and check their current requirements before setup.
 
@@ -24,20 +24,24 @@ node --version
 npm --version
 rustc --version
 cargo --version
+```
+
+When ADB is installed, also run:
+
+```powershell
 adb version
 ```
 
-If a command is not recognized, install the corresponding tool and reopen the terminal.
+## Frontend build
 
-## Planned application setup
+From the repository root:
 
-When implementation begins, the expected app will use:
+```powershell
+npm install
+npm run build
+```
 
-- Tauri 2 for the desktop shell.
-- React and TypeScript for the UI.
-- Rust for native process and device management.
-
-Exact project-generation commands and dependency versions will be added after the initial toolchain is confirmed.
+The Vercel production build has passed with the current TypeScript/Vite configuration. A local Windows Tauri build still needs to be tested on a Windows development machine.
 
 ## Development safety checklist
 
@@ -46,3 +50,4 @@ Exact project-generation commands and dependency versions will be added after th
 - Keep debug logs free of secrets and personal device content.
 - Do not commit generated installers, signing keys, API keys, or local environment files.
 - Test device disconnects and process cleanup.
+- Do not attempt to bypass Android authorization or device security prompts.
