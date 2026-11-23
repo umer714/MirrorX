@@ -163,6 +163,19 @@ function App() {
           )}
         </section>
 
+        <section className="platform-section">
+          <div className="section-heading platform-heading">
+            <div><span className="eyebrow">ONE PRODUCT · MULTIPLE PLATFORMS</span><h3>MirrorX everywhere</h3></div>
+            <span className="planned-tag">IN DEVELOPMENT</span>
+          </div>
+          <div className="platform-grid">
+            <article className="platform-card"><span className="platform-icon">▣</span><div><h4>Windows</h4><p>Desktop host for Android mirroring and remote control.</p><span className="platform-status">DESKTOP PROTOTYPE</span></div></article>
+            <article className="platform-card"><span className="platform-icon">◉</span><div><h4>Android</h4><p>Send your phone screen to PC and use mobile remote controls.</p><span className="platform-status">MOBILE APP FOUNDATION</span></div></article>
+            <article className="platform-card"><span className="platform-icon">◌</span><div><h4>iOS</h4><p>Screen broadcasting and remote-control companion features.</p><span className="platform-status">MOBILE APP FOUNDATION</span></div></article>
+          </div>
+          <p className="platform-note">Mobile apps are in development. Downloads are not available yet. Screen sharing and remote control will require user approval and supported platform permissions.</p>
+        </section>
+
         <footer className="footer"><span>MirrorX is under active development.</span><span>Local-first · Privacy-minded · Windows first</span></footer>
       </section>
     </main>
