@@ -4,20 +4,20 @@
 
 MirrorX is a desktop interface for connecting to and interacting with Android devices. The first release target is Windows and the first connection path is USB.
 
-The desktop application should orchestrate local tools. The initial design does not require a cloud backend for screen mirroring.
+The desktop application orchestrates local tools. The initial design does not require a cloud backend for screen mirroring.
 
 ## 2. High-level flow
 
 ```text
 React + TypeScript UI
         |
-        | Tauri commands / events
+        | Tauri invoke command
         v
 Rust application core
         |
-        +---- ADB: discover and inspect Android devices
+        +---- ADB: list and inspect Android devices
         |
-        +---- scrcpy: start and manage mirroring sessions
+        +---- scrcpy: planned session manager
         |
         v
 Android device (USB initially)
@@ -28,26 +28,25 @@ Android device (USB initially)
 ### Desktop UI
 
 - Show detected devices and their connection state.
-- Let the user start and stop a session.
+- Let the user start and stop a session when that feature is implemented.
 - Display understandable errors and troubleshooting guidance.
 - Keep controls disabled when the required device state is unavailable.
 
 ### Rust core
 
 - Validate requested actions.
-- Locate and launch required local executables.
+- Launch local executables using argument arrays, not shell command strings.
 - Manage child-process lifecycle and shutdown.
-- Stream structured status events to the UI.
-- Avoid shell-string construction from untrusted input; use argument arrays and validate device identifiers.
+- Return structured device information to the UI.
+- Treat command output and device names as untrusted display data.
 
-### ADB
+### ADB device discovery (first prototype)
 
-- Discover attached devices.
-- Read device state.
-- Select a device explicitly when more than one is connected.
-- Report authorization and connection errors without attempting to bypass Android security prompts.
+The `list_android_devices` Tauri command runs `adb devices -l` locally. It parses serial, state, model, product, and device fields. It does not change device settings, bypass authorization, or transmit device information to a server.
 
-### scrcpy
+The frontend displays authorized and unauthorized states. If ADB is not installed or not available in PATH, the UI reports an actionable error. This prototype still needs a Windows build and real-device testing.
+
+### scrcpy (planned)
 
 - Provide the screen mirroring engine and supported interaction features.
 - Be invoked as a managed local process.
@@ -56,10 +55,10 @@ Android device (USB initially)
 ## 4. Security and privacy
 
 - USB is the default connection path for the first prototype.
-- Wireless debugging must be opt-in and explain the local-network implications.
+- Wireless debugging must be opt-in and explain local-network implications.
 - Do not send screen frames, device identifiers, or phone data to a remote service by default.
 - Do not store ADB pairing credentials or other secrets in source control.
-- Treat device names and command output as untrusted display data.
+- Validate device identifiers before passing them to later commands.
 - Stop child processes cleanly when a session ends or the app exits.
 - Do not attempt to bypass Android authorization or device security controls.
 
