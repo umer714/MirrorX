@@ -11,32 +11,33 @@ A milestone is complete only after its features are implemented and tested. A su
 - [x] Create Tauri 2 / Rust shell scaffold.
 - [x] Deploy the public web frontend to Vercel.
 - [ ] Select the project's own code license.
-- [ ] Confirm Windows development environment and toolchain.
 
 ## Milestone 1 — Desktop shell
 
 - [x] Establish initial app layout and connection-mode UI.
-- [x] Add initial Rust command registration.
+- [x] Add Rust command registration.
 - [ ] Validate Tauri desktop app builds and launches on Windows.
 - [ ] Add app icon, installer metadata, and version display.
 
 ## Milestone 2 — USB device discovery
 
-- [x] Add a local ADB `devices -l` command.
+- [x] Add local ADB device listing.
 - [x] Parse device serial, model, product, and state.
-- [x] Display detected devices and authorization states in the UI.
+- [x] Display detected devices and authorization states.
 - [x] Add parser unit tests.
-- [ ] Compile and run the native app on Windows.
-- [ ] Test with a real authorized Android device.
-- [ ] Test unauthorized, disconnected, and multiple-device cases.
-- [ ] Improve ADB discovery and diagnostics based on real-device tests.
+- [ ] Test on a Windows machine with a real Android phone.
 
-## Milestone 3 — First mirroring prototype
+## Milestone 3 — First scrcpy launch prototype
 
-- [ ] Integrate a documented scrcpy version.
-- [ ] Start and stop a session for a selected device.
-- [ ] Surface process errors and logs in a user-friendly way.
-- [ ] Test session cleanup and app shutdown.
+- [x] Add selected-device scrcpy launch command.
+- [x] Verify device authorization before launching scrcpy.
+- [x] Add a managed scrcpy child-process handle.
+- [x] Add Stop Session command.
+- [x] Add selected-device Start / Stop controls to the UI.
+- [x] Add Windows GitHub Actions build and Rust test checks.
+- [ ] Run the Windows CI workflow successfully.
+- [ ] Test start, stop, disconnect, and app-exit behavior with a real phone.
+- [ ] Embed the mirrored screen inside the MirrorX dashboard (currently separate scrcpy window).
 
 ## Milestone 4 — Interaction and reliability
 
