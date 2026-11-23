@@ -105,3 +105,15 @@ h1 { font: 600 25px 'Space Grotesk'; margin: 7px 0 0; letter-spacing: -.7px; }
 .mirror-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
 .secondary-button { border: 1px solid var(--line); border-radius: 8px; padding: 9px 13px; color: #c4c9d5; background: rgba(255,255,255,.035); font-size: 10px; font-weight: 600; cursor: pointer; }
 .secondary-button:disabled { opacity: .45; cursor: not-allowed; }
+
+.platform-section { margin-top: 34px; }
+.platform-heading { margin-bottom: 14px; }
+.platform-heading h3 { margin: 5px 0 0; font: 600 17px 'Space Grotesk'; }
+.platform-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
+.platform-card { display: flex; gap: 12px; min-width: 0; padding: 17px 15px; border: 1px solid var(--line); border-radius: 11px; background: rgba(255,255,255,.025); }
+.platform-icon { display: grid; place-items: center; flex: 0 0 34px; height: 34px; border-radius: 9px; color: #c1b7ff; background: rgba(154,140,255,.12); font-size: 19px; }
+.platform-card h4 { margin: 1px 0 6px; font: 600 12px 'Space Grotesk'; }
+.platform-card p { margin: 0 0 10px; color: #969eaf; font-size: 10px; line-height: 1.6; }
+.platform-status { color: #b9adff; font-size: 8px; font-weight: 700; letter-spacing: .8px; }
+.platform-note { margin: 12px 2px 0; color: #778094; font-size: 9px; line-height: 1.6; }
+@media (max-width: 760px) { .platform-grid { grid-template-columns: 1fr; } .platform-card { padding: 14px; } }
