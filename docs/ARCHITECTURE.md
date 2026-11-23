@@ -2,25 +2,28 @@
 
 ## 1. Product boundary
 
-MirrorX is a desktop interface for connecting to and interacting with Android devices. The first release target is Windows and the first connection path is USB.
+MirrorX is a Windows-first desktop interface for connecting to and interacting with Android devices. USB is the first connection path.
 
-The desktop application orchestrates local tools. The initial design does not require a cloud backend for screen mirroring.
+The desktop application orchestrates local tools. Screen frames are not routed through a cloud backend.
 
 ## 2. High-level flow
 
 ```text
 React + TypeScript UI
         |
-        | Tauri invoke command
+        | Tauri invoke commands
         v
 Rust application core
         |
-        +---- ADB: list and inspect Android devices
+        +---- ADB: list and verify Android devices
         |
-        +---- scrcpy: planned session manager
+        +---- scrcpy: managed local child process
         |
         v
 Android device (USB initially)
+
+scrcpy currently opens its own desktop window.
+Embedding that video surface in MirrorX is a future milestone.
 ```
 
 ## 3. Responsibilities
@@ -28,50 +31,47 @@ Android device (USB initially)
 ### Desktop UI
 
 - Show detected devices and their connection state.
-- Let the user start and stop a session when that feature is implemented.
+- Allow explicit selection of an authorized device.
+- Start and stop the scrcpy process launched by MirrorX.
 - Display understandable errors and troubleshooting guidance.
-- Keep controls disabled when the required device state is unavailable.
 
 ### Rust core
 
-- Validate requested actions.
-- Launch local executables using argument arrays, not shell command strings.
-- Manage child-process lifecycle and shutdown.
-- Return structured device information to the UI.
-- Treat command output and device names as untrusted display data.
+- Validate device identifiers before using them.
+- Launch local executables with argument arrays, never shell command strings.
+- Verify the selected device is in ADB's authorized `device` state before starting scrcpy.
+- Keep the child-process handle and provide a stop command.
+- Return structured errors without exposing phone contents.
 
-### ADB device discovery (first prototype)
+### ADB device discovery
 
-The `list_android_devices` Tauri command runs `adb devices -l` locally. It parses serial, state, model, product, and device fields. It does not change device settings, bypass authorization, or transmit device information to a server.
+The `list_android_devices` command runs `adb devices -l` locally. It parses serial, state, model, product, and device fields. It does not change device settings, bypass authorization, or transmit device information to a server.
 
-The frontend displays authorized and unauthorized states. If ADB is not installed or not available in PATH, the UI reports an actionable error. This prototype still needs a Windows build and real-device testing.
+### scrcpy process prototype
 
-### scrcpy (planned)
+The `start_scrcpy` command verifies the selected serial with ADB and launches `scrcpy --serial <serial>` as a managed child process. The `stop_scrcpy` command terminates that child process. The scrcpy window is separate from MirrorX at this stage; the video surface has not been embedded.
 
-- Provide the screen mirroring engine and supported interaction features.
-- Be invoked as a managed local process.
-- Have its version and license notices documented for every packaged release.
+Both `adb.exe` and `scrcpy.exe` must be installed and discoverable through PATH. The native process integration still needs a successful Windows build and real-device testing.
 
 ## 4. Security and privacy
 
-- USB is the default connection path for the first prototype.
+- USB is the default connection path.
+- Device identifiers are restricted to a conservative character set and passed as process arguments.
+- Never build shell command strings from UI input.
 - Wireless debugging must be opt-in and explain local-network implications.
 - Do not send screen frames, device identifiers, or phone data to a remote service by default.
-- Do not store ADB pairing credentials or other secrets in source control.
-- Validate device identifiers before passing them to later commands.
-- Stop child processes cleanly when a session ends or the app exits.
 - Do not attempt to bypass Android authorization or device security controls.
 
 ## 5. Cloud services
 
 Vercel may host a public website, documentation, and release information. It is not part of the live screen transport path.
 
-Supabase is not required for local mirroring. It may be considered later for optional accounts, license entitlements, or update metadata, with data collection documented and minimized.
+Supabase is not required for local mirroring. It may be considered later for optional accounts or license entitlements with data collection documented and minimized.
 
 ## 6. Decisions still open
 
-- Exact scrcpy distribution and update strategy.
+- Exact scrcpy version and distribution strategy.
 - Whether scrcpy binaries are bundled or separately installed.
+- Embedding the scrcpy video surface in the Tauri window.
 - MirrorX's own source-code license.
 - Update/signing strategy for Windows installers.
-- Supported Windows versions and minimum hardware requirements.
