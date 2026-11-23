@@ -91,3 +91,17 @@ h1 { font: 600 25px 'Space Grotesk'; margin: 7px 0 0; letter-spacing: -.7px; }
 .device-state { flex: 0 0 auto; border-radius: 5px; padding: 4px 7px; color: #e5bc82; background: rgba(211,164,95,.1); font-size: 8px; text-transform: uppercase; letter-spacing: .7px; }
 .device-state.ready { color: #9bd6b0; background: rgba(93,176,124,.1); }
 .device-note { color: #788195; font-size: 9px; padding: 0 13px; margin: 10px 0; }
+
+.status-dot.running { background: #74c99a; box-shadow: 0 0 10px rgba(116,201,154,.35); }
+.device-row { width: 100%; text-align: left; color: inherit; background: transparent; cursor: pointer; border: 0; border-bottom: 1px solid var(--line); font: inherit; }
+.device-row:hover, .device-row.selected { background: rgba(154,140,255,.08); }
+.device-row.selected { box-shadow: inset 2px 0 #9a8cff; }
+.mirror-panel { margin-top: 18px; max-width: 620px; border: 1px solid rgba(154,140,255,.2); border-radius: 10px; padding: 15px; background: rgba(154,140,255,.045); }
+.mirror-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.mirror-heading h4 { margin: 5px 0 0; }
+.mirror-panel > p { margin: 11px 0 13px; }
+.session-pill { flex: 0 0 auto; padding: 5px 8px; border-radius: 5px; color: #c9b9a0; background: rgba(211,164,95,.1); font-size: 8px; letter-spacing: .8px; }
+.session-pill.active { color: #9bd6b0; background: rgba(93,176,124,.1); }
+.mirror-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
+.secondary-button { border: 1px solid var(--line); border-radius: 8px; padding: 9px 13px; color: #c4c9d5; background: rgba(255,255,255,.035); font-size: 10px; font-weight: 600; cursor: pointer; }
+.secondary-button:disabled { opacity: .45; cursor: not-allowed; }
