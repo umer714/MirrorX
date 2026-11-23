@@ -1,27 +1,31 @@
 # MirrorX — Development Roadmap
 
-This roadmap is provisional. Milestones should be considered complete only after the feature is implemented and tested on a real Android device.
+A milestone is complete only after its features are implemented and tested. A successful Vercel web build does not mean the Windows desktop app or mirroring engine is complete.
 
-## Milestone 0 — Foundation
+## Milestone 0 — Repository and web foundation
 
 - [x] Create public GitHub repository.
 - [x] Document product scope and initial architecture.
 - [x] Record privacy and security principles.
+- [x] Create React + TypeScript frontend scaffold.
+- [x] Create Tauri 2 / Rust shell scaffold.
+- [x] Deploy the public web frontend to Vercel.
 - [ ] Select the project's own code license.
 - [ ] Confirm Windows development environment and toolchain.
 
 ## Milestone 1 — Desktop shell
 
-- [ ] Create Tauri 2 + React + TypeScript application.
+- [x] Establish initial app layout and connection-mode UI.
+- [ ] Validate Tauri desktop app builds and launches on Windows.
 - [ ] Add Rust command layer and typed UI events.
-- [ ] Establish app layout, navigation, and device status area.
 - [ ] Add accessible loading, empty, and error states.
+- [ ] Add app icon, installer metadata, and version display.
 
 ## Milestone 2 — Device discovery
 
 - [ ] Integrate ADB process management.
 - [ ] Detect connected Android devices.
-- [ ] Show device model/state where available.
+- [ ] Show device model and connection state where available.
 - [ ] Explain Android USB debugging authorization.
 - [ ] Handle disconnected and unauthorized devices safely.
 
