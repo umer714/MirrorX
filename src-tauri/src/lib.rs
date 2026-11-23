@@ -130,7 +130,7 @@ fn scrcpy_status(session: State<'_, ScrcpySession>) -> Result<bool, String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .manage(ScrcpySession(Mutex::new(None)))
         .invoke_handler(tauri::generate_handler![
             list_android_devices,
@@ -138,8 +138,20 @@ pub fn run() {
             stop_scrcpy,
             scrcpy_status
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running MirrorX");
+        .build(tauri::generate_context!())
+        .expect("error while building MirrorX");
+
+    app.run(|app_handle, event| {
+        if let tauri::RunEvent::Exit = event {
+            let session = app_handle.state::<ScrcpySession>();
+            if let Ok(mut active) = session.0.lock() {
+                if let Some(mut child) = active.take() {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                }
+            }
+        }
+    });
 }
 
 #[cfg(test)]
