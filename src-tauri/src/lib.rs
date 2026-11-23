@@ -1,5 +1,9 @@
 use serde::Serialize;
-use std::process::Command;
+use std::{
+    process::{Child, Command},
+    sync::Mutex,
+};
+use tauri::State;
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -9,6 +13,14 @@ struct AndroidDevice {
     model: Option<String>,
     product: Option<String>,
     device: Option<String>,
+}
+
+struct ScrcpySession(Mutex<Option<Child>>);
+
+fn valid_serial(serial: &str) -> bool {
+    !serial.is_empty()
+        && serial.len() <= 256
+        && serial.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | ':' | '-'))
 }
 
 fn parse_adb_devices(output: &str) -> Vec<AndroidDevice> {
@@ -53,17 +65,86 @@ fn list_android_devices() -> Result<Vec<AndroidDevice>, String> {
     Ok(parse_adb_devices(&stdout))
 }
 
+#[tauri::command]
+fn start_scrcpy(serial: String, session: State<'_, ScrcpySession>) -> Result<String, String> {
+    if !valid_serial(&serial) {
+        return Err("Invalid Android device identifier.".to_string());
+    }
+
+    let state = Command::new("adb")
+        .args(["-s", serial.as_str(), "get-state"])
+        .output()
+        .map_err(|error| format!("Could not verify the device with ADB: {error}"))?;
+    if !state.status.success() || String::from_utf8_lossy(&state.stdout).trim() != "device" {
+        return Err("This device is not authorized or connected. Check the phone and scan again.".to_string());
+    }
+
+    let mut active = session.0.lock().map_err(|_| "Could not access the scrcpy session state.".to_string())?;
+    if let Some(child) = active.as_mut() {
+        match child.try_wait() {
+            Ok(None) => return Err("A MirrorX scrcpy session is already running. Stop it before starting another.".to_string()),
+            Ok(Some(_)) => { *active = None; }
+            Err(error) => return Err(format!("Could not inspect the existing scrcpy session: {error}")),
+        }
+    }
+
+    let child = Command::new("scrcpy")
+        .args(["--serial", serial.as_str()])
+        .spawn()
+        .map_err(|error| format!("scrcpy could not be started. Install scrcpy and make sure it is available in PATH. Details: {error}"))?;
+    *active = Some(child);
+    Ok("scrcpy launched. Its mirroring window should open separately.".to_string())
+}
+
+#[tauri::command]
+fn stop_scrcpy(session: State<'_, ScrcpySession>) -> Result<String, String> {
+    let mut active = session.0.lock().map_err(|_| "Could not access the scrcpy session state.".to_string())?;
+    if let Some(mut child) = active.take() {
+        match child.try_wait() {
+            Ok(Some(_)) => Ok("The scrcpy process has already exited.".to_string()),
+            Ok(None) => {
+                child.kill().map_err(|error| format!("Could not stop scrcpy: {error}"))?;
+                child.wait().map_err(|error| format!("Could not finish stopping scrcpy: {error}"))?;
+                Ok("scrcpy stopped.".to_string())
+            }
+            Err(error) => Err(format!("Could not inspect scrcpy before stopping: {error}")),
+        }
+    } else {
+        Ok("No MirrorX scrcpy session is running.".to_string())
+    }
+}
+
+#[tauri::command]
+fn scrcpy_status(session: State<'_, ScrcpySession>) -> Result<bool, String> {
+    let mut active = session.0.lock().map_err(|_| "Could not access the scrcpy session state.".to_string())?;
+    if let Some(child) = active.as_mut() {
+        match child.try_wait() {
+            Ok(None) => Ok(true),
+            Ok(Some(_)) => { *active = None; Ok(false) }
+            Err(error) => Err(format!("Could not inspect scrcpy: {error}")),
+        }
+    } else {
+        Ok(false)
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![list_android_devices])
+        .manage(ScrcpySession(Mutex::new(None)))
+        .invoke_handler(tauri::generate_handler![
+            list_android_devices,
+            start_scrcpy,
+            stop_scrcpy,
+            scrcpy_status
+        ])
         .run(tauri::generate_context!())
         .expect("error while running MirrorX");
 }
 
 #[cfg(test)]
 mod tests {
-    use super::parse_adb_devices;
+    use super::{parse_adb_devices, valid_serial};
 
     #[test]
     fn parses_authorized_and_unauthorized_devices() {
@@ -79,5 +160,19 @@ mod tests {
     #[test]
     fn empty_adb_output_returns_no_devices() {
         assert!(parse_adb_devices("List of devices attached\n\n").is_empty());
+    }
+
+    #[test]
+    fn accepts_common_adb_serial_formats() {
+        assert!(valid_serial("ABC123"));
+        assert!(valid_serial("192.168.1.20:5555"));
+        assert!(valid_serial("emulator-5554"));
+    }
+
+    #[test]
+    fn rejects_empty_or_shell_metacharacter_serials() {
+        assert!(!valid_serial(""));
+        assert!(!valid_serial("phone; shutdown"));
+        assert!(!valid_serial("phone && whoami"));
     }
 }
