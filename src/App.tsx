@@ -10,28 +10,69 @@ type AndroidDevice = {
 function App() {
   const [mode, setMode] = useState<ConnectionMode>("usb");
   const [devices, setDevices] = useState<AndroidDevice[]>([]);
+  const [selectedSerial, setSelectedSerial] = useState("");
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState("");
   const [hasScanned, setHasScanned] = useState(false);
+  const [scrcpyRunning, setScrcpyRunning] = useState(false);
+  const [scrcpyBusy, setScrcpyBusy] = useState(false);
+  const [scrcpyMessage, setScrcpyMessage] = useState("");
 
   async function detectDevices() {
     setScanError("");
+    setScrcpyMessage("");
     setScanning(true);
     setHasScanned(false);
     try {
       if (!isTauri()) throw new Error("USB scanning is available in the MirrorX Windows desktop app, not in this website.");
       const found = await invoke<AndroidDevice[]>("list_android_devices");
       setDevices(found);
+      setSelectedSerial(found.find((device) => device.state === "device")?.serial ?? "");
       setHasScanned(true);
+      const running = await invoke<boolean>("scrcpy_status");
+      setScrcpyRunning(running);
     } catch (error) {
       setDevices([]);
+      setSelectedSerial("");
       setScanError(error instanceof Error ? error.message : String(error));
     } finally {
       setScanning(false);
     }
   }
 
+  async function startMirroring() {
+    if (!selectedSerial) return;
+    setScrcpyBusy(true);
+    setScrcpyMessage("");
+    try {
+      if (!isTauri()) throw new Error("Mirroring can only start in the MirrorX Windows desktop app.");
+      const message = await invoke<string>("start_scrcpy", { serial: selectedSerial });
+      setScrcpyMessage(message);
+      setScrcpyRunning(true);
+    } catch (error) {
+      setScrcpyMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setScrcpyBusy(false);
+    }
+  }
+
+  async function stopMirroring() {
+    setScrcpyBusy(true);
+    setScrcpyMessage("");
+    try {
+      if (!isTauri()) throw new Error("Mirroring can only be controlled in the MirrorX Windows desktop app.");
+      const message = await invoke<string>("stop_scrcpy");
+      setScrcpyMessage(message);
+      setScrcpyRunning(false);
+    } catch (error) {
+      setScrcpyMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setScrcpyBusy(false);
+    }
+  }
+
   const connectedCount = devices.filter((device) => device.state === "device").length;
+  const selectedDevice = devices.find((device) => device.serial === selectedSerial);
 
   return (
     <main className="app-shell">
@@ -43,7 +84,7 @@ function App() {
           <div className="nav-item muted"><span className="nav-icon">⚙</span> Settings</div>
         </nav>
         <div className="sidebar-bottom">
-          <div className="engine-status"><span className="status-dot" /> ADB discovery prototype</div>
+          <div className="engine-status"><span className={scrcpyRunning ? "status-dot running" : "status-dot"} /> {scrcpyRunning ? "scrcpy session launched" : "ADB / scrcpy prototype"}</div>
           <span className="version">MIRRORX · EARLY ACCESS</span>
         </div>
       </aside>
@@ -58,7 +99,7 @@ function App() {
           <div>
             <span className="eyebrow">YOUR PHONE. YOUR PC. ONE EXPERIENCE.</span>
             <h2>Connect your Android<br /><em>to a bigger workspace.</em></h2>
-            <p>Find Android devices connected to your Windows computer. Screen mirroring is the next milestone.</p>
+            <p>Discover Android devices and launch the scrcpy mirroring window from your Windows desktop.</p>
           </div>
           <div className="device-art" aria-hidden="true">
             <div className="orbit orbit-one" /><div className="orbit orbit-two" />
@@ -94,13 +135,23 @@ function App() {
                 {scanError && <div className="scan-message error" role="alert">{scanError}</div>}
                 {hasScanned && devices.length === 0 && <div className="scan-message" role="status">No devices found. Check the USB cable, USB debugging setting, and Android authorization prompt, then scan again.</div>}
                 {devices.length > 0 && <div className="device-list" aria-live="polite">
-                  <div className="device-list-heading">DETECTED DEVICES</div>
-                  {devices.map((device) => <div className="device-row" key={device.serial}>
-                    <div className="device-info"><strong>{device.model || device.product || "Android device"}</strong><span>{device.serial}</span></div>
+                  <div className="device-list-heading">DETECTED DEVICES · SELECT ONE</div>
+                  {devices.map((device) => <button className={selectedSerial === device.serial ? "device-row selected" : "device-row"} key={device.serial} onClick={() => setSelectedSerial(device.serial)} type="button">
+                    <span className="device-info"><strong>{device.model || device.product || "Android device"}</strong><span>{device.serial}</span></span>
                     <span className={device.state === "device" ? "device-state ready" : "device-state"}>{device.state}</span>
-                  </div>)}
-                  <p className="device-note">Device discovery only. Live screen mirroring is not available yet.</p>
+                  </button>)}
                 </div>}
+                {selectedDevice?.state === "device" && <div className="mirror-panel">
+                  <div className="mirror-heading"><div><span className="eyebrow">SELECTED DEVICE</span><h4>{selectedDevice.model || selectedDevice.product || "Android device"}</h4></div><span className={scrcpyRunning ? "session-pill active" : "session-pill"}>{scrcpyRunning ? "SESSION LAUNCHED" : "READY TO MIRROR"}</span></div>
+                  <p>MirrorX will launch scrcpy in its own desktop window. Install scrcpy and make sure it is available in PATH.</p>
+                  <div className="mirror-actions">
+                    <button className="primary-button" onClick={startMirroring} disabled={scrcpyBusy || scrcpyRunning}>{scrcpyBusy ? "Please wait…" : "Start mirroring"} <span>↗</span></button>
+                    <button className="secondary-button" onClick={stopMirroring} disabled={scrcpyBusy || !scrcpyRunning}>Stop session</button>
+                  </div>
+                  {scrcpyMessage && <div className="scan-message" role="status">{scrcpyMessage}</div>}
+                </div>}
+                {selectedDevice && selectedDevice.state !== "device" && <div className="scan-message error">This device is not authorized yet. Unlock your phone and approve the USB debugging prompt.</div>}
+                <p className="device-note">Mirroring runs locally. The website cannot access USB devices; use the Windows desktop app.</p>
               </div>
             </div>
           ) : (
