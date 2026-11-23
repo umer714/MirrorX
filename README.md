@@ -4,17 +4,23 @@
 
 MirrorX is a Windows-first desktop application project focused on Android screen mirroring and device interaction.
 
-> **Current status:** The React + TypeScript dashboard scaffold and Tauri 2 Rust shell are in the repository. The web dashboard is deployed, but Android device discovery, ADB integration, scrcpy session management, and actual screen mirroring are **not implemented yet**. The Vercel website is not the Windows desktop application.
+> **Current status:** The React + TypeScript dashboard, Tauri 2 / Rust shell, and first local ADB device-discovery command are implemented in the repository. The ADB command has parser unit tests, but has not yet been compiled and tested on a Windows machine with a real Android phone. scrcpy session management and live screen mirroring are **not implemented yet**. The Vercel website is not the Windows desktop application.
 
 ## Project links
 
 - **Website:** https://mirrorxapp.vercel.app
 - **GitHub:** https://github.com/umer714/MirrorX
 
+## Current prototype
+
+The USB screen can call a native Tauri command that runs `adb devices -l` locally and displays device model, serial, and connection state. It reports missing ADB and unauthorized devices instead of attempting to bypass Android authorization.
+
+To test this feature, build and run the Tauri desktop app on Windows, install Android Platform Tools, connect an Android phone with USB debugging enabled, and approve the computer authorization prompt. The public website cannot access USB devices.
+
 ## Planned capabilities
 
 - Detect Android devices connected over USB.
-- Start and stop a live mirrored screen.
+- Start and stop a live mirrored screen using scrcpy.
 - Support mouse and keyboard interaction where supported by the connected device and engine.
 - Provide clear connection and troubleshooting states.
 - Explore wireless connections, screenshots, recording, clipboard support, and multi-device workflows in later milestones.
@@ -29,14 +35,14 @@ MirrorX is a Windows-first desktop application project focused on Android screen
 | Android connection | Android Debug Bridge (ADB) | Device discovery and connection |
 | Mirroring engine | scrcpy | Android screen mirroring and supported controls |
 
-The initial target is **Windows**. Vercel hosts the public web frontend and documentation; it does not carry live screen frames. The first mirroring implementation is intended to run locally between the PC and Android device.
+The initial target is **Windows**. Vercel hosts the public web frontend and documentation; it does not carry live screen frames. The mirroring implementation is intended to run locally between the PC and Android device.
 
 ## Repository layout
 
 ```text
 MirrorX/
 ├── src/                 # React + TypeScript frontend
-├── src-tauri/           # Tauri 2 / Rust desktop shell
+├── src-tauri/           # Tauri 2 / Rust desktop shell and commands
 ├── docs/
 │   ├── ARCHITECTURE.md
 │   ├── ROADMAP.md
@@ -55,7 +61,7 @@ npm install
 npm run build
 ```
 
-For native Windows development, also install the Rust toolchain, Microsoft C++ Build Tools / Windows SDK, and Tauri's Windows prerequisites. ADB and scrcpy will be required when their integrations are implemented.
+For native Windows development, install the Rust toolchain, Microsoft C++ Build Tools / Windows SDK, Tauri's Windows prerequisites, and Android Platform Tools. ADB must be available in PATH for USB discovery. A compatible scrcpy build will be required when mirroring is implemented.
 
 See [Development notes](docs/DEVELOPMENT.md), [Architecture](docs/ARCHITECTURE.md), and [Roadmap](docs/ROADMAP.md).
 
