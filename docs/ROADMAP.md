@@ -16,18 +16,20 @@ A milestone is complete only after its features are implemented and tested. A su
 ## Milestone 1 — Desktop shell
 
 - [x] Establish initial app layout and connection-mode UI.
+- [x] Add initial Rust command registration.
 - [ ] Validate Tauri desktop app builds and launches on Windows.
-- [ ] Add Rust command layer and typed UI events.
-- [ ] Add accessible loading, empty, and error states.
 - [ ] Add app icon, installer metadata, and version display.
 
-## Milestone 2 — Device discovery
+## Milestone 2 — USB device discovery
 
-- [ ] Integrate ADB process management.
-- [ ] Detect connected Android devices.
-- [ ] Show device model and connection state where available.
-- [ ] Explain Android USB debugging authorization.
-- [ ] Handle disconnected and unauthorized devices safely.
+- [x] Add a local ADB `devices -l` command.
+- [x] Parse device serial, model, product, and state.
+- [x] Display detected devices and authorization states in the UI.
+- [x] Add parser unit tests.
+- [ ] Compile and run the native app on Windows.
+- [ ] Test with a real authorized Android device.
+- [ ] Test unauthorized, disconnected, and multiple-device cases.
+- [ ] Improve ADB discovery and diagnostics based on real-device tests.
 
 ## Milestone 3 — First mirroring prototype
 
