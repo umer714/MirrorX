@@ -2,9 +2,14 @@
 
 **Your Phone. Your PC. One Experience.**
 
-MirrorX is a Windows-first desktop application project focused on Android screen mirroring and device interaction. The goal is to provide a clear, approachable desktop experience built around established Android tooling.
+MirrorX is a Windows-first desktop application project focused on Android screen mirroring and device interaction.
 
-> **Project status:** Early planning / foundation. This repository currently contains product documentation. A working desktop application has not been implemented yet.
+> **Current status:** The React + TypeScript dashboard scaffold and Tauri 2 Rust shell are in the repository. The web dashboard is deployed, but Android device discovery, ADB integration, scrcpy session management, and actual screen mirroring are **not implemented yet**. The Vercel website is not the Windows desktop application.
+
+## Project links
+
+- **Website:** https://mirrorxapp.vercel.app
+- **GitHub:** https://github.com/umer714/MirrorX
 
 ## Planned capabilities
 
@@ -16,7 +21,7 @@ MirrorX is a Windows-first desktop application project focused on Android screen
 
 ## Technical direction
 
-| Area | Planned technology | Responsibility |
+| Area | Technology | Responsibility |
 |---|---|---|
 | Desktop shell | Tauri 2 | Native desktop window and packaging |
 | User interface | React + TypeScript | Screens, controls, device status |
@@ -24,44 +29,51 @@ MirrorX is a Windows-first desktop application project focused on Android screen
 | Android connection | Android Debug Bridge (ADB) | Device discovery and connection |
 | Mirroring engine | scrcpy | Android screen mirroring and supported controls |
 
-The initial target is **Windows**. Other desktop platforms may be considered after the first stable release.
+The initial target is **Windows**. Vercel hosts the public web frontend and documentation; it does not carry live screen frames. The first mirroring implementation is intended to run locally between the PC and Android device.
 
-## Repository layout (planned)
+## Repository layout
 
 ```text
 MirrorX/
-├── README.md
-├── .gitignore
-└── docs/
-    ├── ARCHITECTURE.md
-    ├── ROADMAP.md
-    └── DEVELOPMENT.md
+├── src/                 # React + TypeScript frontend
+├── src-tauri/           # Tauri 2 / Rust desktop shell
+├── docs/
+│   ├── ARCHITECTURE.md
+│   ├── ROADMAP.md
+│   └── DEVELOPMENT.md
+├── package.json
+├── vite.config.ts
+└── README.md
 ```
 
-The source application directories will be added when implementation begins.
+## Development
 
-## Getting started
+The frontend build can be checked with:
 
-There is no runnable application in this repository yet. See:
+```bash
+npm install
+npm run build
+```
 
-- [Architecture](docs/ARCHITECTURE.md)
-- [Roadmap](docs/ROADMAP.md)
-- [Development notes](docs/DEVELOPMENT.md)
+For native Windows development, also install the Rust toolchain, Microsoft C++ Build Tools / Windows SDK, and Tauri's Windows prerequisites. ADB and scrcpy will be required when their integrations are implemented.
+
+See [Development notes](docs/DEVELOPMENT.md), [Architecture](docs/ARCHITECTURE.md), and [Roadmap](docs/ROADMAP.md).
 
 ## Third-party components and licensing
 
-MirrorX plans to integrate with scrcpy and may use other third-party components. Each dependency must retain its applicable copyright and license notices. Before distribution, the project must document the exact versions, notices, modifications, and any packaging obligations. See the upstream [scrcpy repository](https://github.com/Genymobile/scrcpy) for its current license and notices.
+MirrorX plans to integrate with scrcpy and may use other third-party components. Each dependency must retain its applicable copyright and license notices. Before distribution, document exact versions, notices, modifications, and packaging obligations. See the upstream [scrcpy repository](https://github.com/Genymobile/scrcpy) for its current license and notices.
 
-The license for MirrorX's own code has **not yet been selected**. Do not assume that the public visibility of this repository grants permission to reuse its code.
+The license for MirrorX's own code has **not yet been selected**. Public repository visibility does not itself grant permission to reuse the code.
 
 ## Project principles
 
 - Make device connection status and required permissions clear.
 - Never collect phone contents or transmit screen data to a server by default.
 - Keep mirroring traffic local between the computer and Android device.
-- Explain any optional network features before enabling them.
-- Prefer reliable, accessible workflows over unnecessary complexity.
+- Explain optional network features before enabling them.
+- Use safe process management and explicit device selection.
+- Do not bypass Android authorization or device security prompts.
 
-## Contributing
+## Release rule
 
-The project is in its foundation stage. Design and implementation decisions may change as the first Windows prototype is built.
+Do not describe a feature as available until it has been implemented, tested on a real Android device, and included in a published Windows build.
