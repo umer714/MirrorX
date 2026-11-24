@@ -68,7 +68,7 @@ export default function App() {
       const result = await requestScreenCapturePermission();
       setCapturePermission(result.granted);
       setCaptureMessage(result.granted
-        ? "Android screen session is active. H.264 video is being encoded locally; PC streaming is next."
+        ? "Permission granted. Android is preparing local H.264 capture; check the capture status before treating the session as active."
         : "Permission was not granted. You can try again whenever you are ready.");
     } catch (error) {
       setCaptureMessage(error instanceof Error ? error.message : "Unable to request screen-capture permission.");
@@ -142,10 +142,11 @@ export default function App() {
               <Pressable
                 accessibilityRole="button"
                 onPress={requestCapturePermission}
-                style={styles.capturePermissionButton}
+                disabled={capturePermission}
+                style={[styles.capturePermissionButton, capturePermission && { opacity: 0.55 }]}
               >
                 <Text style={styles.capturePermissionButtonText}>
-                  {capturePermission ? "Screen session active" : "Start screen session"}
+                  {capturePermission ? "Screen permission granted" : "Start screen session"}
                 </Text>
               </Pressable>
               {capturePermission ? (
