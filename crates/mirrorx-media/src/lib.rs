@@ -372,3 +372,56 @@ pub unsafe extern "C" fn mirrorx_h264_queue_free(handle: *mut MirrorXH264QueueHa
         drop(unsafe { Box::from_raw(handle) });
     }
 }
+
+
+#[cfg(test)]
+mod ffi_tests {
+    use super::{
+        mirrorx_h264_queue_free, mirrorx_h264_queue_new, mirrorx_h264_queue_pop,
+        mirrorx_h264_queue_push, FFI_BUFFER_TOO_SMALL, FFI_EMPTY, FFI_INVALID, FFI_OK,
+    };
+
+    #[test]
+    fn ffi_queue_copies_frames_and_retains_them_when_output_is_small() {
+        unsafe {
+            let queue = mirrorx_h264_queue_new(2);
+            assert!(!queue.is_null());
+            let payload = [0, 0, 0, 1, 0x65, 0xaa];
+            assert_eq!(
+                mirrorx_h264_queue_push(queue, payload.as_ptr(), payload.len(), true, 1234),
+                FFI_OK
+            );
+
+            let mut required = 0usize;
+            let mut keyframe = false;
+            let mut pts = 0u64;
+            let mut tiny = [0u8; 2];
+            assert_eq!(
+                mirrorx_h264_queue_pop(queue, tiny.as_mut_ptr(), tiny.len(), &mut required, &mut keyframe, &mut pts),
+                FFI_BUFFER_TOO_SMALL
+            );
+            assert_eq!(required, payload.len());
+            assert!(keyframe);
+            assert_eq!(pts, 1234);
+
+            let mut output = [0u8; 16];
+            assert_eq!(
+                mirrorx_h264_queue_pop(queue, output.as_mut_ptr(), output.len(), &mut required, &mut keyframe, &mut pts),
+                FFI_OK
+            );
+            assert_eq!(&output[..required], &payload);
+            assert_eq!(mirrorx_h264_queue_pop(queue, output.as_mut_ptr(), output.len(), &mut required, &mut keyframe, &mut pts), FFI_EMPTY);
+            mirrorx_h264_queue_free(queue);
+        }
+    }
+
+    #[test]
+    fn ffi_queue_rejects_invalid_inputs() {
+        unsafe {
+            let queue = mirrorx_h264_queue_new(1);
+            assert_eq!(mirrorx_h264_queue_push(queue, std::ptr::null(), 1, false, 0), FFI_INVALID);
+            assert_eq!(mirrorx_h264_queue_push(queue, [1u8].as_ptr(), 0, false, 0), FFI_INVALID);
+            mirrorx_h264_queue_free(queue);
+        }
+    }
+}
