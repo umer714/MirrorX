@@ -13,6 +13,7 @@ export type CaptureStats = {
   codecConfigBytes: number;
   width: number;
   height: number;
+  lastError: string;
 };
 
 type MirrorXCaptureNativeModule = {
@@ -50,5 +51,5 @@ export function stopProjectionSession(): boolean {
 }
 
 export function getCaptureStats(): CaptureStats {
-  return nativeModule?.getCaptureStats() ?? { active: false, frames: 0, encodedBytes: 0, keyFrames: 0, codecConfigBytes: 0, width: 0, height: 0 };
+  return nativeModule?.getCaptureStats() ?? { active: false, frames: 0, encodedBytes: 0, keyFrames: 0, codecConfigBytes: 0, width: 0, height: 0, lastError: "" };
 }
