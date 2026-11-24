@@ -53,6 +53,10 @@ fn parse_adb_devices(output: &str) -> Vec<AndroidDevice> {
 }
 
 
+fn valid_pairing_code(code: &str) -> bool {
+    code.len() == 6 && code.chars().all(|character| character.is_ascii_digit())
+}
+
 fn wireless_endpoint(host: &str, port: u16) -> Result<String, String> {
     let ip = IpAddr::from_str(host.trim())
         .map_err(|_| "Enter the phone's valid IPv4 or IPv6 address.".to_string())?;
@@ -66,7 +70,7 @@ fn wireless_endpoint(host: &str, port: u16) -> Result<String, String> {
 fn pair_android_wireless(host: String, port: u16, pairing_code: String) -> Result<String, String> {
     let endpoint = wireless_endpoint(&host, port)?;
     let code = pairing_code.trim();
-    if code.len() != 6 || !code.chars().all(|character| character.is_ascii_digit()) {
+    if !valid_pairing_code(code) {
         return Err("Android pairing code must contain exactly 6 digits.".to_string());
     }
     let output = Command::new("adb")
@@ -207,7 +211,7 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_adb_devices, valid_serial, wireless_endpoint};
+    use super::{parse_adb_devices, valid_pairing_code, valid_serial, wireless_endpoint};
 
     #[test]
     fn parses_authorized_and_unauthorized_devices() {
@@ -230,6 +234,15 @@ mod tests {
         assert!(valid_serial("ABC123"));
         assert!(valid_serial("192.168.1.20:5555"));
         assert!(valid_serial("emulator-5554"));
+    }
+
+    #[test]
+    fn validates_android_pairing_code_shape() {
+        assert!(valid_pairing_code("123456"));
+        assert!(!valid_pairing_code("12345"));
+        assert!(!valid_pairing_code("1234567"));
+        assert!(!valid_pairing_code("12ab56"));
+        assert!(!valid_pairing_code("123 56"));
     }
 
     #[test]
