@@ -5,11 +5,19 @@ type CapturePermissionResult = {
   status: "approved" | "denied";
 };
 
+export type CaptureStats = {
+  active: boolean;
+  frames: number;
+  width: number;
+  height: number;
+};
+
 type MirrorXCaptureNativeModule = {
   requestScreenCapturePermission(): Promise<CapturePermissionResult>;
   hasApprovedScreenCapturePermission(): boolean;
   clearApprovedScreenCapturePermission(): boolean;
   stopProjectionSession(): boolean;
+  getCaptureStats(): CaptureStats;
 };
 
 const nativeModule =
@@ -36,4 +44,8 @@ export function clearApprovedScreenCapturePermission(): boolean {
 
 export function stopProjectionSession(): boolean {
   return nativeModule?.stopProjectionSession() ?? false;
+}
+
+export function getCaptureStats(): CaptureStats {
+  return nativeModule?.getCaptureStats() ?? { active: false, frames: 0, width: 0, height: 0 };
 }
