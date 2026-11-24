@@ -142,16 +142,16 @@ class MirrorXProjectionService : Service() {
                 if (info.size > 0) {
                   val output = codec.getOutputBuffer(index)
                   if (output != null && (info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG) == 0) {
-                    // Consume a stable copy of this encoded access unit before releasing the codec buffer.
-                    output.position(info.offset)
-                    output.limit(info.offset + info.size)
-                    val accessUnit = ByteArray(info.size)
-                    output.get(accessUnit)
-                    encodedFrames += 1
-                    encodedBytes += accessUnit.size.toLong()
-                    if ((info.flags and MediaCodec.BUFFER_FLAG_KEY_FRAME) != 0) keyFrames += 1
-                    if (encodedFrames % 15L == 0L) {
-                      saveStats(true, encodedFrames, encodedBytes, keyFrames, codecConfigBytes, captureWidth, captureHeight)
+                    // This stage records encoder output only. Avoid allocating/copying a frame
+                    // that is not yet consumed by a transport; the codec buffer is released below.
+                    val bufferEnd = info.offset.toLong() + info.size.toLong()
+                    if (info.offset >= 0 && info.size > 0 && bufferEnd <= output.capacity().toLong()) {
+                      encodedFrames += 1
+                      encodedBytes += info.size.toLong()
+                      if ((info.flags and MediaCodec.BUFFER_FLAG_KEY_FRAME) != 0) keyFrames += 1
+                      if (encodedFrames % 15L == 0L) {
+                        saveStats(true, encodedFrames, encodedBytes, keyFrames, codecConfigBytes, captureWidth, captureHeight)
+                      }
                     }
                   }
                 }
