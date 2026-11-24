@@ -58,7 +58,7 @@ Implemented foundation:
 - The service reports local access-unit, byte, keyframe, codec configuration, and resolution statistics.
 - Stop and projection-revocation paths release capture resources.
 
-Important boundary: encoded access units are currently copied for local accounting and discarded. No Android network sender, peer discovery, pairing, Windows receiver, or live playback is connected. Encoder counters are not evidence of a remote video stream.
+Important boundary: encoded access units are counted from MediaCodec metadata and released without a per-frame copy. They are not retained or transmitted. No Android network sender, peer discovery, pairing, Windows receiver, or live playback is connected. Encoder counters are not evidence of a remote video stream.
 
 ### iOS
 
