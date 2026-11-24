@@ -18,6 +18,6 @@ cargo ndk \
   -t arm64-v8a \
   -t armeabi-v7a \
   -t x86_64 \
-  -p 24 \
+  -P 24 \
   -o "$OUTPUT_DIR" \
   build --release
