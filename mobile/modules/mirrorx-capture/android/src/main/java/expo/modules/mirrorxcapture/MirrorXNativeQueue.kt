@@ -20,6 +20,7 @@ internal object MirrorXNativeQueue {
     if (libraryLoaded) return true
     return try {
       System.loadLibrary("mirrorx_media")
+      System.loadLibrary("mirrorx_capture_jni")
       libraryLoaded = true
       true
     } catch (_: UnsatisfiedLinkError) {
