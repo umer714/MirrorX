@@ -81,6 +81,7 @@ class MirrorXProjectionService : Service() {
       val height = metrics.heightPixels.coerceAtLeast(1)
       val density = metrics.densityDpi
 
+      frameCount = 0L
       imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
       imageReader?.setOnImageAvailableListener({ reader ->
         var image = reader.acquireLatestImage()
@@ -106,7 +107,6 @@ class MirrorXProjectionService : Service() {
       if (virtualDisplay == null) {
         throw IllegalStateException("Android could not create the screen capture display.")
       }
-      frameCount = 0L
       saveStats(active = true, frames = frameCount, width = width, height = height)
     } catch (error: Throwable) {
       stopProjection()
