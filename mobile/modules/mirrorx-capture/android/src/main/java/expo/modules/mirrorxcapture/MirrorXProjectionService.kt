@@ -31,6 +31,7 @@ class MirrorXProjectionService : Service() {
   @Volatile private var encodedBytes = 0L
   @Volatile private var keyFrames = 0L
   private var codecConfigBytes = 0
+  @Volatile private var codecConfigData = ByteArray(0)
   private var captureWidth = 0
   private var captureHeight = 0
 
@@ -93,6 +94,7 @@ class MirrorXProjectionService : Service() {
       encodedBytes = 0L
       keyFrames = 0L
       codecConfigBytes = 0
+      codecConfigData = ByteArray(0)
 
       val format = MediaFormat.createVideoFormat(MIME_TYPE, captureWidth, captureHeight).apply {
         setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
@@ -147,8 +149,13 @@ class MirrorXProjectionService : Service() {
             MediaCodec.INFO_TRY_AGAIN_LATER -> Unit
             MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
               val outputFormat = codec.outputFormat
-              codecConfigBytes = listOf("csd-0", "csd-1", "csd-2")
-                .sumOf { key -> if (outputFormat.containsKey(key)) outputFormat.getByteBuffer(key)?.remaining() ?: 0 else 0 }
+              val codecConfigParts = listOf("csd-0", "csd-1", "csd-2").mapNotNull { key ->
+                if (!outputFormat.containsKey(key)) null else outputFormat.getByteBuffer(key)?.duplicate()?.let { buffer ->
+                  ByteArray(buffer.remaining()).also { bytes -> buffer.get(bytes) }
+                }
+              }
+              codecConfigData = codecConfigParts.fold(ByteArray(0)) { combined, part -> combined + part }
+              codecConfigBytes = codecConfigData.size
               saveStats(true, encodedFrames, encodedBytes, keyFrames, codecConfigBytes, captureWidth, captureHeight)
             }
             else -> if (index >= 0) {
@@ -162,13 +169,16 @@ class MirrorXProjectionService : Service() {
                       frameBuffer.clear()
                       frameBuffer.position(info.offset)
                       frameBuffer.limit(info.offset + info.size)
-                      val frameData = ByteArray(info.size)
-                      frameBuffer.get(frameData)
+                      val encodedData = ByteArray(info.size)
+                      frameBuffer.get(encodedData)
                       val isKeyframe = (info.flags and MediaCodec.BUFFER_FLAG_KEY_FRAME) != 0
+                      // MediaCodec often delivers SPS/PPS separately from encoded frames.
+                      // Prefix codec config to each IDR so a receiver can initialize/recover.
+                      val config = codecConfigData
+                      val frameData = if (isKeyframe && config.isNotEmpty()) config + encodedData else encodedData
                       val queueHandle = nativeQueueHandle
                       if (queueHandle != 0L) {
-                        // Copy encoded H.264 into the bounded Rust queue. A future WebRTC
-                        // sender consumes this queue without routing video through JavaScript.
+                        // Copy encoded H.264 into the bounded Rust queue, outside JavaScript.
                         MirrorXNativeQueue.nativePush(queueHandle, frameData, isKeyframe, info.presentationTimeUs)
                       }
                       encodedFrames += 1
