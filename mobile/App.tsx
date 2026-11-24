@@ -89,7 +89,7 @@ export default function App() {
           </View>
           <View style={styles.statusPill}>
             <View style={styles.statusDot} />
-            <Text style={styles.statusText}>LOCAL</Text>
+            <Text style={styles.statusText}>OFFLINE</Text>
           </View>
         </View>
 
@@ -107,14 +107,14 @@ export default function App() {
           <FeatureCard
             icon="▣"
             title="Screen Sender"
-            description="Share your Android or iPhone screen with MirrorX on Windows."
+            description="Share your Android screen with MirrorX on Windows (capture foundation)."
             selected={mode === "sender"}
             onPress={() => setMode("sender")}
           />
           <FeatureCard
             icon="⌘"
             title="Remote Controller"
-            description="Use your phone as a touchpad, keyboard and shortcut remote."
+            description="Touchpad, keyboard and approved shortcuts (connection not available yet)."
             selected={mode === "controller"}
             onPress={() => setMode("controller")}
           />
@@ -133,7 +133,7 @@ export default function App() {
             </View>
           </View>
 
-          {mode === "sender" && Platform.OS === "android" ? (
+          {mode === "sender" && Platform.OS === "ios" ? (\n            <View style={styles.capturePermissionPanel}>\n              <Text style={styles.capturePermissionTitle}>IOS SCREEN CAPTURE</Text>\n              <Text style={styles.capturePermissionDescription}>\n                iOS ReplayKit broadcast capture has not been implemented yet. This build cannot stream an iPhone screen.\n              </Text>\n            </View>\n          ) : null}\n          {mode === "sender" && Platform.OS === "android" ? (
             <View style={styles.capturePermissionPanel}>
               <Text style={styles.capturePermissionTitle}>ANDROID SCREEN PERMISSION</Text>
               <Text style={styles.capturePermissionDescription}>
@@ -209,7 +209,7 @@ export default function App() {
             Local-network first. No account required for basic device pairing.
             Your screen is not uploaded to a MirrorX cloud service.
           </Text>
-          <Text style={styles.version}>MIRRORX MOBILE · 0.1.0 · FOUNDATION BUILD</Text>
+          <Text style={styles.version}>MIRRORX MOBILE · 0.1.0 · DEVELOPMENT BUILD</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
