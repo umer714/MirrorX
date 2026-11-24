@@ -117,3 +117,12 @@ h1 { font: 600 25px 'Space Grotesk'; margin: 7px 0 0; letter-spacing: -.7px; }
 .platform-status { color: #b9adff; font-size: 8px; font-weight: 700; letter-spacing: .8px; }
 .platform-note { margin: 12px 2px 0; color: #778094; font-size: 9px; line-height: 1.6; }
 @media (max-width: 760px) { .platform-grid { grid-template-columns: 1fr; } .platform-card { padding: 14px; } }
+
+
+.wireless-form { display: grid; gap: 12px; max-width: 620px; margin-top: 16px; }
+.wireless-form label { display: grid; gap: 6px; color: #aeb5c4; font-size: 10px; font-weight: 600; }
+.wireless-form input { width: 100%; min-width: 0; border: 1px solid rgba(255,255,255,.12); border-radius: 8px; padding: 10px 11px; outline: none; color: #edf0f7; background: rgba(10,12,19,.72); font: 11px 'DM Sans',sans-serif; }
+.wireless-form input:focus { border-color: #9a8cff; box-shadow: 0 0 0 3px rgba(154,140,255,.1); }
+.wireless-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.wireless-form .secondary-button { justify-self: start; }
+@media (max-width: 430px) { .wireless-fields { grid-template-columns: 1fr; } }
