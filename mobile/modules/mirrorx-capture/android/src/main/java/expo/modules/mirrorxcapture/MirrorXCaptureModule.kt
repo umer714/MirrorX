@@ -3,6 +3,7 @@ package expo.modules.mirrorxcapture
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.media.projection.MediaProjectionManager
 import expo.modules.kotlin.Promise
 import expo.modules.kotlin.modules.Module
@@ -49,6 +50,17 @@ class MirrorXCaptureModule : Module() {
       true
     }
 
+    Function("stopProjectionSession") {
+      val context = appContext.reactContext ?: return@Function false
+      val stopIntent = Intent(context, MirrorXProjectionService::class.java).apply {
+        action = MirrorXProjectionService.ACTION_STOP
+      }
+      context.startService(stopIntent)
+      approvedResultCode = null
+      approvedResultData = null
+      true
+    }
+
     OnActivityResult { _, payload ->
       if (payload.requestCode != SCREEN_CAPTURE_REQUEST_CODE) {
         return@OnActivityResult
@@ -58,6 +70,29 @@ class MirrorXCaptureModule : Module() {
       if (granted) {
         approvedResultCode = payload.resultCode
         approvedResultData = payload.data
+        try {
+          val context = appContext.reactContext
+            ?: throw IllegalStateException("Android application context is unavailable.")
+          val serviceIntent = Intent(context, MirrorXProjectionService::class.java).apply {
+            putExtra(MirrorXProjectionService.EXTRA_RESULT_CODE, payload.resultCode)
+            putExtra(MirrorXProjectionService.EXTRA_RESULT_DATA, payload.data)
+          }
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(serviceIntent)
+          } else {
+            context.startService(serviceIntent)
+          }
+        } catch (error: Throwable) {
+          approvedResultCode = null
+          approvedResultData = null
+          pendingPromise?.reject(
+            "ERR_PROJECTION_SERVICE_START",
+            error.message ?: "Unable to start the visible screen-session service.",
+            error
+          )
+          pendingPromise = null
+          return@OnActivityResult
+        }
       } else {
         approvedResultCode = null
         approvedResultData = null
