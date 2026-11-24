@@ -396,3 +396,11 @@ impl SignalingGate {
         assert_eq!(gate.accept(&offer), Err(SignalingReject::InvalidSessionId));
     }
 
+
+
+#[cfg(test)]
+mod signaling_tests {
+    use super::*;
+
+
+}
