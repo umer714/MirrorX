@@ -61,6 +61,19 @@ class MirrorXCaptureModule : Module() {
       true
     }
 
+    Function("getCaptureStats") {
+      val context = appContext.reactContext ?: return@Function mapOf(
+        "active" to false, "frames" to 0L, "width" to 0, "height" to 0
+      )
+      val prefs = context.getSharedPreferences(MirrorXProjectionService.PREFS, Context.MODE_PRIVATE)
+      mapOf(
+        "active" to prefs.getBoolean(MirrorXProjectionService.KEY_ACTIVE, false),
+        "frames" to prefs.getLong(MirrorXProjectionService.KEY_FRAMES, 0L),
+        "width" to prefs.getInt(MirrorXProjectionService.KEY_WIDTH, 0),
+        "height" to prefs.getInt(MirrorXProjectionService.KEY_HEIGHT, 0)
+      )
+    }
+
     OnActivityResult { _, payload ->
       if (payload.requestCode != SCREEN_CAPTURE_REQUEST_CODE) {
         return@OnActivityResult
