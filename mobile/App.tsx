@@ -9,7 +9,7 @@ import {
   View,
   Platform,
 } from "react-native";
-import { requestScreenCapturePermission, stopProjectionSession } from "./modules/mirrorx-capture/src";
+import { getCaptureStats, requestScreenCapturePermission, stopProjectionSession } from "./modules/mirrorx-capture/src";
 
 type Mode = "sender" | "controller";
 
@@ -61,6 +61,7 @@ export default function App() {
   const [mode, setMode] = useState<Mode>("sender");
   const [capturePermission, setCapturePermission] = useState(false);
   const [captureMessage, setCaptureMessage] = useState("");
+  const [captureStatsMessage, setCaptureStatsMessage] = useState("");
 
   const requestCapturePermission = async () => {
     try {
@@ -147,6 +148,23 @@ export default function App() {
                   {capturePermission ? "Screen session active" : "Start screen session"}
                 </Text>
               </Pressable>
+              {capturePermission ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => {
+                    const stats = getCaptureStats();
+                    setCaptureStatsMessage(
+                      stats.active
+                        ? `Capturing locally: ${stats.frames} frames received · ${stats.width}×${stats.height}`
+                        : "No active capture session reported by Android."
+                    );
+                  }}
+                  style={[styles.capturePermissionButton, { backgroundColor: "#34384D" }]}
+                >
+                  <Text style={styles.capturePermissionButtonText}>Check capture status</Text>
+                </Pressable>
+              ) : null}
+              {captureStatsMessage ? <Text style={styles.capturePermissionMessage}>{captureStatsMessage}</Text> : null}
               {capturePermission ? (
                 <Pressable
                   accessibilityRole="button"
