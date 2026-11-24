@@ -30,6 +30,9 @@ class MirrorXProjectionService : Service() {
   @Volatile private var encodedFrames = 0L
   @Volatile private var encodedBytes = 0L
   @Volatile private var keyFrames = 0L
+  @Volatile private var queueAcceptedFrames = 0L
+  @Volatile private var queueDroppedFrames = 0L
+  @Volatile private var queuePushErrors = 0L
   private var codecConfigBytes = 0
   @Volatile private var codecConfigData = ByteArray(0)
   private var captureWidth = 0
@@ -93,6 +96,9 @@ class MirrorXProjectionService : Service() {
       encodedFrames = 0L
       encodedBytes = 0L
       keyFrames = 0L
+      queueAcceptedFrames = 0L
+      queueDroppedFrames = 0L
+      queuePushErrors = 0L
       codecConfigBytes = 0
       codecConfigData = ByteArray(0)
 
@@ -179,7 +185,11 @@ class MirrorXProjectionService : Service() {
                       val queueHandle = nativeQueueHandle
                       if (queueHandle != 0L) {
                         // Copy encoded H.264 into the bounded Rust queue, outside JavaScript.
-                        MirrorXNativeQueue.nativePush(queueHandle, frameData, isKeyframe, info.presentationTimeUs)
+                        when (MirrorXNativeQueue.nativePush(queueHandle, frameData, isKeyframe, info.presentationTimeUs)) {
+                          1 -> queueAcceptedFrames += 1
+                          0 -> queueDroppedFrames += 1
+                          else -> queuePushErrors += 1
+                        }
                       }
                       encodedFrames += 1
                       encodedBytes += info.size.toLong()
@@ -221,6 +231,9 @@ class MirrorXProjectionService : Service() {
       .putLong(KEY_FRAMES, frames)
       .putLong(KEY_ENCODED_BYTES, bytes)
       .putLong(KEY_KEY_FRAMES, keyFrames)
+      .putLong(KEY_QUEUE_ACCEPTED_FRAMES, queueAcceptedFrames)
+      .putLong(KEY_QUEUE_DROPPED_FRAMES, queueDroppedFrames)
+      .putLong(KEY_QUEUE_PUSH_ERRORS, queuePushErrors)
       .putInt(KEY_CODEC_CONFIG_BYTES, configBytes)
       .putInt(KEY_WIDTH, width)
       .putInt(KEY_HEIGHT, height)
@@ -290,6 +303,9 @@ class MirrorXProjectionService : Service() {
     const val KEY_FRAMES = "frames"
     const val KEY_ENCODED_BYTES = "encoded_bytes"
     const val KEY_KEY_FRAMES = "key_frames"
+    const val KEY_QUEUE_ACCEPTED_FRAMES = "queue_accepted_frames"
+    const val KEY_QUEUE_DROPPED_FRAMES = "queue_dropped_frames"
+    const val KEY_QUEUE_PUSH_ERRORS = "queue_push_errors"
     const val KEY_CODEC_CONFIG_BYTES = "codec_config_bytes"
     const val KEY_WIDTH = "width"
     const val KEY_HEIGHT = "height"
