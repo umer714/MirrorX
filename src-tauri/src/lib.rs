@@ -3,7 +3,7 @@ use std::{
     process::{Child, Command},
     sync::Mutex,
 };
-use tauri::State;
+use tauri::{Manager, State};
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
