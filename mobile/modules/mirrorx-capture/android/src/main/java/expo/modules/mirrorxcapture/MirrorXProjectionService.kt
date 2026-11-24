@@ -28,13 +28,15 @@ class MirrorXProjectionService : Service() {
   private var drainThread: Thread? = null
   @Volatile private var encodedFrames = 0L
   @Volatile private var encodedBytes = 0L
+  @Volatile private var keyFrames = 0L
+  private var codecConfigBytes = 0
   private var captureWidth = 0
   private var captureHeight = 0
 
   override fun onCreate() {
     super.onCreate()
     createNotificationChannel()
-    saveStats(active = false, frames = 0L, bytes = 0L, width = 0, height = 0)
+    saveStats(active = false, frames = 0L, bytes = 0L, keyFrames = 0L, configBytes = 0, width = 0, height = 0)
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -71,7 +73,7 @@ class MirrorXProjectionService : Service() {
         override fun onStop() {
           releaseCaptureResources()
           projection = null
-          saveStats(active = false, frames = encodedFrames, bytes = encodedBytes, width = 0, height = 0)
+          saveStats(active = false, frames = encodedFrames, bytes = encodedBytes, keyFrames = keyFrames, configBytes = codecConfigBytes, width = 0, height = 0)
           stopForeground(STOP_FOREGROUND_REMOVE)
           stopSelf()
         }
@@ -85,6 +87,8 @@ class MirrorXProjectionService : Service() {
       captureHeight = captureHeight.coerceAtLeast(2)
       encodedFrames = 0L
       encodedBytes = 0L
+      keyFrames = 0L
+      codecConfigBytes = 0
 
       val format = MediaFormat.createVideoFormat(MIME_TYPE, captureWidth, captureHeight).apply {
         setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
@@ -110,7 +114,7 @@ class MirrorXProjectionService : Service() {
       ) ?: throw IllegalStateException("Android could not create the screen capture display.")
 
       startEncoderDrain(videoEncoder)
-      saveStats(active = true, frames = 0L, bytes = 0L, width = captureWidth, height = captureHeight)
+      saveStats(active = true, frames = 0L, bytes = 0L, keyFrames = 0L, configBytes = 0, width = captureWidth, height = captureHeight)
     } catch (error: Throwable) {
       stopProjection()
       stopSelf()
@@ -127,28 +131,51 @@ class MirrorXProjectionService : Service() {
         try {
           when (val index = codec.dequeueOutputBuffer(info, 10_000)) {
             MediaCodec.INFO_TRY_AGAIN_LATER -> Unit
-            MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> Unit
+            MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
+              val outputFormat = codec.outputFormat
+              codecConfigBytes = listOf("csd-0", "csd-1", "csd-2")
+                .sumOf { key -> if (outputFormat.containsKey(key)) outputFormat.getByteBuffer(key)?.remaining() ?: 0 else 0 }
+              saveStats(true, encodedFrames, encodedBytes, keyFrames, codecConfigBytes, captureWidth, captureHeight)
+            }
             else -> if (index >= 0) {
-              if (info.size > 0) {
-                encodedFrames += 1
-                encodedBytes += info.size.toLong()
-                saveStats(true, encodedFrames, encodedBytes, captureWidth, captureHeight)
+              try {
+                if (info.size > 0) {
+                  val output = codec.getOutputBuffer(index)
+                  if (output != null && (info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG) == 0) {
+                    // Consume a stable copy of this encoded access unit before releasing the codec buffer.
+                    output.position(info.offset)
+                    output.limit(info.offset + info.size)
+                    val accessUnit = ByteArray(info.size)
+                    output.get(accessUnit)
+                    encodedFrames += 1
+                    encodedBytes += accessUnit.size.toLong()
+                    if ((info.flags and MediaCodec.BUFFER_FLAG_KEY_FRAME) != 0) keyFrames += 1
+                    if (encodedFrames % 15L == 0L) {
+                      saveStats(true, encodedFrames, encodedBytes, keyFrames, codecConfigBytes, captureWidth, captureHeight)
+                    }
+                  }
+                }
+              } finally {
+                codec.releaseOutputBuffer(index, false)
               }
-              codec.releaseOutputBuffer(index, false)
             }
           }
         } catch (_: IllegalStateException) {
           break
+        } catch (_: IndexOutOfBoundsException) {
+          // A codec may invalidate a buffer during shutdown; skip that output and continue draining.
         }
       }
     }, "MirrorX-H264-Drain").also { it.start() }
   }
 
-  private fun saveStats(active: Boolean, frames: Long, bytes: Long, width: Int, height: Int) {
+  private fun saveStats(active: Boolean, frames: Long, bytes: Long, keyFrames: Long, configBytes: Int, width: Int, height: Int) {
     getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
       .putBoolean(KEY_ACTIVE, active)
       .putLong(KEY_FRAMES, frames)
       .putLong(KEY_ENCODED_BYTES, bytes)
+      .putLong(KEY_KEY_FRAMES, keyFrames)
+      .putInt(KEY_CODEC_CONFIG_BYTES, configBytes)
       .putInt(KEY_WIDTH, width)
       .putInt(KEY_HEIGHT, height)
       .apply()
@@ -172,7 +199,7 @@ class MirrorXProjectionService : Service() {
     val active = projection
     projection = null
     active?.stop()
-    saveStats(false, encodedFrames, encodedBytes, 0, 0)
+    saveStats(false, encodedFrames, encodedBytes, keyFrames, codecConfigBytes, 0, 0)
     stopForeground(STOP_FOREGROUND_REMOVE)
   }
 
@@ -211,6 +238,8 @@ class MirrorXProjectionService : Service() {
     const val KEY_ACTIVE = "active"
     const val KEY_FRAMES = "frames"
     const val KEY_ENCODED_BYTES = "encoded_bytes"
+    const val KEY_KEY_FRAMES = "key_frames"
+    const val KEY_CODEC_CONFIG_BYTES = "codec_config_bytes"
     const val KEY_WIDTH = "width"
     const val KEY_HEIGHT = "height"
     private const val MIME_TYPE = "video/avc"
