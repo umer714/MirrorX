@@ -81,8 +81,15 @@ The shared Rust crate now includes a bounded typed signaling message contract
 session identifier validation, and an ordering guard. The mobile TypeScript
 layer has a matching shape validator and sequence guard.
 
-These additions are protocol foundations only. They do not open a signaling
-socket, authenticate a pairing ticket, establish a WebRTC peer connection,
-exchange SDP over a network, or transmit video. Pairing-ticket issuance,
-expiry/single-use enforcement, WebRTC adapter integration, and real-device
-interoperability remain required before an end-to-end session can be claimed.
+An Android native `MirrorXEncodedFrameSource` now provides a single-consumer,
+interruptible polling seam over the bounded Rust H.264 queue for a future native
+transport adapter. It applies a small idle backoff and does not cross the React
+Native bridge for each frame. It intentionally does not create a connection or
+send media by itself.
+
+These additions are protocol and adapter foundations only. They do not open a
+signaling socket, authenticate a pairing ticket, establish a WebRTC peer
+connection, exchange SDP over a network, or transmit video. Pairing-ticket
+issuance, expiry/single-use enforcement, WebRTC adapter integration, and
+real-device interoperability remain required before an end-to-end session can
+be claimed.
