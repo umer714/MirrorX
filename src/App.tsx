@@ -1,4 +1,5 @@
 import { useState } from "react";
+import MarketingSite from "./MarketingSite";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 
 type ConnectionMode = "usb" | "wireless";
@@ -8,6 +9,7 @@ type AndroidDevice = {
 };
 
 function App() {
+  if (!isTauri()) return <MarketingSite />;
   const [mode, setMode] = useState<ConnectionMode>("usb");
   const [devices, setDevices] = useState<AndroidDevice[]>([]);
   const [selectedSerial, setSelectedSerial] = useState("");
