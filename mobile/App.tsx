@@ -68,7 +68,7 @@ export default function App() {
       const result = await requestScreenCapturePermission();
       setCapturePermission(result.granted);
       setCaptureMessage(result.granted
-        ? "Android screen session is active with a visible notification. Frame capture and PC streaming are next."
+        ? "Android screen session is active. H.264 video is being encoded locally; PC streaming is next."
         : "Permission was not granted. You can try again whenever you are ready.");
     } catch (error) {
       setCaptureMessage(error instanceof Error ? error.message : "Unable to request screen-capture permission.");
@@ -155,7 +155,7 @@ export default function App() {
                     const stats = getCaptureStats();
                     setCaptureStatsMessage(
                       stats.active
-                        ? `Capturing locally: ${stats.frames} frames received · ${stats.width}×${stats.height}`
+                        ? `H.264 encoded locally: ${stats.frames} frames · ${(stats.encodedBytes / 1024).toFixed(1)} KB · ${stats.width}×${stats.height}`
                         : "No active capture session reported by Android."
                     );
                   }}
