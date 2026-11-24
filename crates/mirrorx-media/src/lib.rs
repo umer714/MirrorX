@@ -9,6 +9,8 @@ pub enum H264Error {
     TruncatedNalLength,
     ZeroLengthNal,
     NalExceedsAccessUnit,
+    MissingAnnexBStartCode,
+    EmptyNalUnit,
 }
 
 const ANNEX_B_START_CODE: [u8; 4] = [0, 0, 0, 1];
@@ -69,6 +71,73 @@ pub fn to_annex_b(
         return Err(H264Error::EmptyAccessUnit);
     }
     Ok(output)
+}
+
+
+/// Metadata extracted from an Annex-B H.264 access unit.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct H264AccessUnitInfo {
+    /// True when the access unit contains an IDR (NAL unit type 5).
+    pub keyframe: bool,
+    /// Sequence parameter sets (NAL unit payloads, including NAL header).
+    pub sps: Vec<Vec<u8>>,
+    /// Picture parameter sets (NAL unit payloads, including NAL header).
+    pub pps: Vec<Vec<u8>>,
+}
+
+fn start_code_len(data: &[u8], offset: usize) -> Option<usize> {
+    let remaining = data.get(offset..)?;
+    if remaining.starts_with(&[0, 0, 0, 1]) {
+        Some(4)
+    } else if remaining.starts_with(&[0, 0, 1]) {
+        Some(3)
+    } else {
+        None
+    }
+}
+
+/// Inspect an Annex-B access unit for IDR, SPS, and PPS NAL units.
+///
+/// Returned SPS/PPS values exclude Annex-B start codes but include their NAL
+/// headers, making them suitable for caching and re-sending with a keyframe.
+pub fn inspect_annex_b(access_unit: &[u8]) -> Result<H264AccessUnitInfo, H264Error> {
+    if access_unit.is_empty() {
+        return Err(H264Error::EmptyAccessUnit);
+    }
+
+    let mut info = H264AccessUnitInfo::default();
+    let mut cursor = 0usize;
+    let mut found_start_code = false;
+
+    while cursor < access_unit.len() {
+        let Some(prefix_len) = start_code_len(access_unit, cursor) else {
+            cursor += 1;
+            continue;
+        };
+        found_start_code = true;
+        let nal_start = cursor + prefix_len;
+        let mut next = nal_start;
+        while next < access_unit.len() && start_code_len(access_unit, next).is_none() {
+            next += 1;
+        }
+        if nal_start == next {
+            return Err(H264Error::EmptyNalUnit);
+        }
+
+        let nal = &access_unit[nal_start..next];
+        match nal[0] & 0x1f {
+            5 => info.keyframe = true,
+            7 => info.sps.push(nal.to_vec()),
+            8 => info.pps.push(nal.to_vec()),
+            _ => {}
+        }
+        cursor = next;
+    }
+
+    if !found_start_code {
+        return Err(H264Error::MissingAnnexBStartCode);
+    }
+    Ok(info)
 }
 
 /// An already encoded H.264 access unit. The payload is owned so it can safely
@@ -150,7 +219,7 @@ impl BoundedH264Queue {
 
 #[cfg(test)]
 mod tests {
-    use super::{to_annex_b, BoundedH264Queue, H264Error, H264Frame};
+    use super::{inspect_annex_b, to_annex_b, BoundedH264Queue, H264Error, H264Frame};
 
     fn frame(keyframe: bool, pts_micros: u64) -> H264Frame {
         H264Frame {
