@@ -37,6 +37,9 @@ A milestone is complete only after its features are implemented and tested. A su
 - [x] Add Windows GitHub Actions build and Rust test checks.
 - [ ] Run the latest Windows CI workflow successfully.
 - [ ] Test start, stop, disconnect, and app-exit behavior with a real phone.
+- [x] Add ADB Wireless debugging pair and connect commands with IP/port validation.
+- [x] Add desktop wireless pairing and connection form.
+- [ ] Test wireless pairing and reconnect behavior with a real Android phone.
 - [ ] Embed the mirrored screen inside the MirrorX dashboard (currently separate scrcpy window).
 
 ## Milestone 4 — Android capture foundation
