@@ -212,6 +212,7 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::{parse_adb_devices, valid_pairing_code, valid_serial, wireless_endpoint};
+    use mirrorx_media::{to_annex_b, BoundedH264Queue, H264Frame};
 
     #[test]
     fn parses_authorized_and_unauthorized_devices() {
