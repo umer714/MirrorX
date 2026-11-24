@@ -149,7 +149,7 @@ pub fn run() {
                     let _ = child.kill();
                     let _ = child.wait();
                 }
-            }
+            };
         }
     });
 }
