@@ -37,12 +37,22 @@ extern "C" JNIEXPORT jobject JNICALL
 Java_expo_modules_mirrorxcapture_MirrorXNativeQueue_nativePop(
     JNIEnv* env, jclass, jlong handle, jint max_bytes) {
   if (handle == kInvalidHandle || max_bytes <= 0 || max_bytes > kMaxFrameBytes) return nullptr;
-  std::vector<uint8_t> bytes(static_cast<size_t>(max_bytes));
+  // First ask the Rust queue for the exact next access-unit size. Avoid
+  // allocating the 16 MiB upper bound for every frame on the capture thread.
   size_t length = 0;
   bool keyframe = false;
   uint64_t pts_micros = 0;
-  const int32_t status = mirrorx_h264_queue_pop(from_handle(handle), bytes.data(), bytes.size(),
-                                                 &length, &keyframe, &pts_micros);
+  const int32_t probe_status = mirrorx_h264_queue_pop(
+      from_handle(handle), nullptr, 0, &length, &keyframe, &pts_micros);
+  if (probe_status != -2 || length == 0 ||
+      length > static_cast<size_t>(max_bytes) ||
+      length > static_cast<size_t>(kMaxFrameBytes)) {
+    return nullptr;
+  }
+
+  std::vector<uint8_t> bytes(length);
+  const int32_t status = mirrorx_h264_queue_pop(
+      from_handle(handle), bytes.data(), bytes.size(), &length, &keyframe, &pts_micros);
   if (status != 1 || length > bytes.size()) return nullptr;
   jbyteArray payload = env->NewByteArray(static_cast<jsize>(length));
   if (payload == nullptr) return nullptr;
