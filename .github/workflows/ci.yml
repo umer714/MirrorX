@@ -28,6 +28,29 @@ jobs:
       - name: Build frontend
         run: npm run build
 
+      - name: Generate Windows app icon
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.Drawing
+          New-Item -ItemType Directory -Force -Path src-tauri/icons | Out-Null
+          $bitmap = [System.Drawing.Bitmap]::new(256, 256)
+          $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+          $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+          $graphics.Clear([System.Drawing.Color]::FromArgb(91, 63, 211))
+          $font = [System.Drawing.Font]::new("Arial", 150, [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
+          $brush = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::White)
+          $graphics.DrawString("M", $font, $brush, 34, 24)
+          $stream = [System.IO.MemoryStream]::new()
+          $bitmap.Save($stream, [System.Drawing.Imaging.ImageFormat]::Png)
+          $png = $stream.ToArray()
+          $header = [byte[]](@(0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 32, 0) + [BitConverter]::GetBytes([int]$png.Length) + [BitConverter]::GetBytes([int]22))
+          [System.IO.File]::WriteAllBytes("src-tauri/icons/icon.ico", [byte[]]($header + $png))
+          $graphics.Dispose()
+          $font.Dispose()
+          $brush.Dispose()
+          $bitmap.Dispose()
+          $stream.Dispose()
+
       - name: Run Rust tests
         run: cargo test --manifest-path src-tauri/Cargo.toml
 
