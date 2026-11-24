@@ -1,20 +1,24 @@
 # MirrorX Android Capture Bridge
 
-This local Expo module requests Android's system screen-capture consent through
-MediaProjectionManager and reports whether the user approved or declined.
+This local Expo module starts a user-approved Android screen-capture session through the platform-owned MediaProjection consent flow.
 
-## Current scope
+## Implemented
 
-- Opens the Android-owned consent dialog only after the user taps the request button.
-- Keeps the approved result token in module memory for the current app process.
-- Exposes a status check and a clear operation to the React Native layer.
-- Does not start a MediaProjection foreground service, create a VirtualDisplay,
-  encode frames, or transmit screen content yet.
+- Opens Android's system consent dialog only after the user taps the capture button.
+- Starts a non-exported foreground service with the `mediaProjection` service type.
+- Creates a VirtualDisplay and feeds it into an Android MediaCodec H.264 encoder.
+- Tracks encoded access units, encoded byte count, keyframes, codec configuration bytes, and capture resolution.
+- Shows an ongoing system notification while capture is active.
+- Stops capture resources when the user requests Stop or Android revokes the projection.
 
-A successful consent result is **not** a live mirroring session. The next native
-milestone is a user-visible mediaProjection foreground service with lifecycle
-and revocation handling, followed by frame encoding and authenticated desktop
-transport. The app must request consent again for each new projection session,
-as required by Android.
+## Not implemented yet
 
-No screen content is uploaded or transmitted by this permission bridge.
+- Encoded H.264 access units are currently counted locally and discarded after the codec buffer is released.
+- No LAN discovery, pairing, transport, receiver, or live playback is connected.
+- The current status counters prove encoder output only; they do not prove that a desktop received video.
+
+## Platform requirements
+
+Android owns the screen-capture permission prompt. MirrorX does not bypass it. A fresh user-approved projection session is required according to Android's MediaProjection lifecycle rules. The foreground notification remains visible while capture is active.
+
+The next milestone is authenticated local pairing and encrypted media transport, followed by a Windows receiver and real-device end-to-end testing. Screen content must not be sent to a cloud service by default.
