@@ -17,6 +17,12 @@ function App() {
   const [scrcpyRunning, setScrcpyRunning] = useState(false);
   const [scrcpyBusy, setScrcpyBusy] = useState(false);
   const [scrcpyMessage, setScrcpyMessage] = useState("");
+  const [wirelessHost, setWirelessHost] = useState("");
+  const [pairingPort, setPairingPort] = useState("");
+  const [connectionPort, setConnectionPort] = useState("");
+  const [pairingCode, setPairingCode] = useState("");
+  const [wirelessBusy, setWirelessBusy] = useState(false);
+  const [wirelessMessage, setWirelessMessage] = useState("");
 
   async function detectDevices() {
     setScanError("");
@@ -37,6 +43,46 @@ function App() {
       setScanError(error instanceof Error ? error.message : String(error));
     } finally {
       setScanning(false);
+    }
+  }
+
+  async function pairWirelessDevice() {
+    setWirelessBusy(true);
+    setWirelessMessage("");
+    try {
+      if (!isTauri()) throw new Error("Wireless pairing is available in the MirrorX Windows desktop app.");
+      const message = await invoke<string>("pair_android_wireless", {
+        host: wirelessHost.trim(),
+        port: Number(pairingPort),
+        pairingCode: pairingCode.trim(),
+      });
+      setWirelessMessage(message);
+      setPairingCode("");
+    } catch (error) {
+      setWirelessMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setWirelessBusy(false);
+    }
+  }
+
+  async function connectWirelessDevice() {
+    setWirelessBusy(true);
+    setWirelessMessage("");
+    try {
+      if (!isTauri()) throw new Error("Wireless connection is available in the MirrorX Windows desktop app.");
+      const message = await invoke<string>("connect_android_wireless", {
+        host: wirelessHost.trim(),
+        port: Number(connectionPort),
+      });
+      setWirelessMessage(message);
+      const found = await invoke<AndroidDevice[]>("list_android_devices");
+      setDevices(found);
+      setSelectedSerial(found.find((device) => device.state === "device")?.serial ?? "");
+      setHasScanned(true);
+    } catch (error) {
+      setWirelessMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setWirelessBusy(false);
     }
   }
 
@@ -156,9 +202,20 @@ function App() {
             </div>
           ) : (
             <div className="connect-content"><div className="connect-symbol">⌁</div><div className="connect-copy">
-              <h4>Wireless connection is planned</h4>
-              <p>Wireless debugging will be added after USB connection is working reliably. It will require an explicit setup and approval on your Android device.</p>
-              <span className="planned-tag">PLANNED FEATURE</span>
+              <h4>Pair an Android device over Wi-Fi</h4>
+              <p>On your phone, open Developer options → Wireless debugging → Pair device with pairing code. Keep the phone and PC on the same network.</p>
+              <div className="wireless-form">
+                <label>Phone IP address<input value={wirelessHost} onChange={(event) => setWirelessHost(event.target.value)} placeholder="192.168.1.25" autoComplete="off" /></label>
+                <div className="wireless-fields">
+                  <label>Pairing port<input value={pairingPort} onChange={(event) => setPairingPort(event.target.value)} placeholder="Pairing port" inputMode="numeric" /></label>
+                  <label>6-digit code<input value={pairingCode} onChange={(event) => setPairingCode(event.target.value)} placeholder="123456" inputMode="numeric" maxLength={6} /></label>
+                </div>
+                <button className="primary-button" onClick={pairWirelessDevice} disabled={wirelessBusy || !wirelessHost.trim() || !pairingPort || pairingCode.length !== 6}>{wirelessBusy ? "Please wait…" : "Pair device"} <span>→</span></button>
+                <label>Connection port<input value={connectionPort} onChange={(event) => setConnectionPort(event.target.value)} placeholder="Connection port (shown separately)" inputMode="numeric" /></label>
+                <button className="secondary-button" onClick={connectWirelessDevice} disabled={wirelessBusy || !wirelessHost.trim() || !connectionPort}>{wirelessBusy ? "Please wait…" : "Connect over Wi-Fi"}</button>
+                {wirelessMessage && <div className="scan-message" role="status">{wirelessMessage}</div>}
+                <p className="device-note">Android shows separate pairing and connection ports. Enter the exact values displayed by Wireless debugging. Pairing uses ADB's built-in authenticated flow; no screen data is sent to a cloud server.</p>
+              </div>
             </div></div>
           )}
         </section>
