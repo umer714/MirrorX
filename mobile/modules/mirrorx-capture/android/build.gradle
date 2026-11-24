@@ -8,5 +8,28 @@ android {
   namespace "expo.modules.mirrorxcapture"
   defaultConfig {
     minSdkVersion 24
+    externalNativeBuild {
+      cmake {
+        cppFlags "-std=c++17"
+      }
+    }
   }
+
+  externalNativeBuild {
+    cmake {
+      path "src/main/cpp/CMakeLists.txt"
+      version "3.22.1"
+    }
+  }
+}
+
+// Build the shared Rust media crate for Android ABIs before CMake links the JNI
+// shim against the generated libmirrorx_media.so files.
+tasks.register("buildMirrorXRustAndroid", Exec) {
+  workingDir rootProject.projectDir.parentFile.parentFile
+  commandLine "bash", "mobile/scripts/build-android-native.sh"
+}
+
+tasks.named("preBuild").configure {
+  dependsOn("buildMirrorXRustAndroid")
 }
