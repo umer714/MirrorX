@@ -42,6 +42,9 @@ Local diagnostic counters
 - Start and stop the scrcpy process launched by MirrorX.
 - Validate device identifiers and pass them as process arguments, never shell command strings.
 - Verify the selected device is in ADB's authorized `device` state before starting scrcpy.
+- Pair Android Wireless debugging sessions with the six-digit code shown by Android using `adb pair`.
+- Connect to the separately displayed wireless debugging endpoint using `adb connect`.
+- Validate IP addresses and ports, and pass values as process arguments rather than shell strings.
 
 The scrcpy window is separate from MirrorX at this stage; its video surface has not been embedded.
 
@@ -71,7 +74,7 @@ These are design requirements, not implemented features.
 
 ## 6. Security and privacy
 
-- USB is the current desktop prototype's connection path.
+- USB and Android's user-approved ADB Wireless debugging pairing are available as desktop connection paths. Wireless pairing requires the user to enable Developer options / Wireless debugging and enter the temporary code shown by Android.
 - Android capture requires explicit OS permission and a visible foreground notification.
 - Never build shell command strings from UI input.
 - Do not attempt to bypass Android authorization or device security controls.
