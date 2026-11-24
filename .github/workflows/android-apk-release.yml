@@ -57,7 +57,14 @@ jobs:
 
       - name: Build release APK with embedded JavaScript bundle
         working-directory: mobile/android
-        run: ./gradlew --no-daemon assembleRelease
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if ./gradlew --no-daemon --refresh-dependencies assembleRelease; then exit 0; fi
+            echo "Gradle dependency resolution/build failed (attempt ${attempt}/3); retrying..."
+            sleep 15
+          done
+          exit 1
 
       - name: Sign standalone APK for testing
         working-directory: mobile
