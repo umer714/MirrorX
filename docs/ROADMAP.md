@@ -53,10 +53,10 @@ A milestone is complete only after its features are implemented and tested. A su
 
 ## Milestone 5 — Secure local transport and receiver
 
-- [ ] Select and integrate an established encrypted media transport (WebRTC preferred).
-- [ ] Implement short-lived authenticated pairing and user-approved QR flow.
+- [x] Select a shared Rust WebRTC transport for the prototype (ADR-0001); Android build/interoperability gate remains.
+- [ ] Implement short-lived authenticated signaling and user-approved pairing flow.
 - [ ] Implement local peer discovery / connection setup.
-- [ ] Send H.264 media from Android with bounded buffering and backpressure.
+- [ ] Send H.264 media from Android with a bounded three-frame queue, keyframe recovery, and backpressure.
 - [ ] Implement Windows receiver and live playback.
 - [ ] Add disconnect, reconnect, timeout, and session revocation handling.
 - [ ] Test end-to-end on a real Android phone and Windows PC.
