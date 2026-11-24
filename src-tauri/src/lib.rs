@@ -259,4 +259,16 @@ mod tests {
         assert!(!valid_serial("phone; shutdown"));
         assert!(!valid_serial("phone && whoami"));
     }
+
+    #[test]
+    fn desktop_uses_shared_versioned_control_contract() {
+        use mirrorx_transport::{ApprovedShortcut, ControlEvent, ControlGate, ControlMessage};
+        let mut gate = ControlGate::default();
+        let message = ControlMessage {
+            version: 1,
+            sequence: 1,
+            event: ControlEvent::Shortcut { shortcut: ApprovedShortcut::Escape },
+        };
+        assert!(gate.validate(&message, 10).is_ok());
+    }
 }
