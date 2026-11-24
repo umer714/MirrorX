@@ -7,7 +7,9 @@ import {
   Text,
   Pressable,
   View,
+  Platform,
 } from "react-native";
+import { requestScreenCapturePermission } from "./modules/mirrorx-capture/src";
 
 type Mode = "sender" | "controller";
 
@@ -57,6 +59,20 @@ function FeatureCard({
 
 export default function App() {
   const [mode, setMode] = useState<Mode>("sender");
+  const [capturePermission, setCapturePermission] = useState(false);
+  const [captureMessage, setCaptureMessage] = useState("");
+
+  const requestCapturePermission = async () => {
+    try {
+      const result = await requestScreenCapturePermission();
+      setCapturePermission(result.granted);
+      setCaptureMessage(result.granted
+        ? "Android permission approved. Live streaming is the next integration step."
+        : "Permission was not granted. You can try again whenever you are ready.");
+    } catch (error) {
+      setCaptureMessage(error instanceof Error ? error.message : "Unable to request screen-capture permission.");
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -116,6 +132,24 @@ export default function App() {
             </View>
           </View>
 
+          {mode === "sender" && Platform.OS === "android" ? (
+            <View style={styles.capturePermissionPanel}>
+              <Text style={styles.capturePermissionTitle}>ANDROID SCREEN PERMISSION</Text>
+              <Text style={styles.capturePermissionDescription}>
+                Start with Android's official consent screen. MirrorX cannot capture anything unless you approve it.
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={requestCapturePermission}
+                style={styles.capturePermissionButton}
+              >
+                <Text style={styles.capturePermissionButtonText}>
+                  {capturePermission ? "Permission approved" : "Request screen permission"}
+                </Text>
+              </Pressable>
+              {captureMessage ? <Text style={styles.capturePermissionMessage}>{captureMessage}</Text> : null}
+            </View>
+          ) : null}
           <View style={styles.emptyState}>
             <View style={styles.scanIcon}>
               <Text style={styles.scanIconText}>⌕</Text>
@@ -194,6 +228,12 @@ const styles = StyleSheet.create({
   panelSubtitle: { color: palette.muted, fontSize: 11, marginTop: 5 },
   wifiIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: palette.surfaceRaised, alignItems: "center", justifyContent: "center" },
   wifiIconText: { color: palette.accent, fontSize: 25 },
+  capturePermissionPanel: { marginTop: 18, padding: 14, borderRadius: 14, backgroundColor: palette.surfaceRaised, borderWidth: 1, borderColor: palette.border },
+  capturePermissionTitle: { color: palette.accent, fontSize: 9, fontWeight: "900", letterSpacing: 1.3 },
+  capturePermissionDescription: { color: palette.muted, fontSize: 11, lineHeight: 17, marginTop: 7 },
+  capturePermissionButton: { marginTop: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 10, backgroundColor: palette.accent, alignItems: "center" },
+  capturePermissionButtonText: { color: "#FFFFFF", fontSize: 12, fontWeight: "800" },
+  capturePermissionMessage: { color: palette.muted, fontSize: 10, lineHeight: 15, marginTop: 9 },
   emptyState: { alignItems: "center", paddingHorizontal: 10, paddingTop: 28, paddingBottom: 24 },
   scanIcon: { width: 54, height: 54, borderRadius: 18, backgroundColor: palette.surfaceRaised, alignItems: "center", justifyContent: "center", marginBottom: 14 },
   scanIconText: { color: palette.accent, fontSize: 34 },
