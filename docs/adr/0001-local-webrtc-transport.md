@@ -72,3 +72,17 @@ Do not mark transport complete until all are true:
 - [webrtc-rs H.26x playback example](https://github.com/webrtc-rs/webrtc/blob/master/examples/play-from-disk-h26x/play-from-disk-h26x.rs)
 - [webrtc-rs media API and examples](https://github.com/webrtc-rs/webrtc/blob/master/examples/README.md)
 - [libdatachannel project](https://github.com/paullouisageneau/libdatachannel)
+
+
+## Implementation progress — 2026-11-25
+
+The shared Rust crate now includes a bounded typed signaling message contract
+(offer, answer, ICE candidate, end-of-candidates, close), payload size limits,
+session identifier validation, and an ordering guard. The mobile TypeScript
+layer has a matching shape validator and sequence guard.
+
+These additions are protocol foundations only. They do not open a signaling
+socket, authenticate a pairing ticket, establish a WebRTC peer connection,
+exchange SDP over a network, or transmit video. Pairing-ticket issuance,
+expiry/single-use enforcement, WebRTC adapter integration, and real-device
+interoperability remain required before an end-to-end session can be claimed.
