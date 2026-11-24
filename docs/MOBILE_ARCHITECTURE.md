@@ -74,8 +74,14 @@ control bursts above 60 events per second. The desktop Rust crate depends on
 this shared contract, and the mobile TypeScript client has a matching strict
 message-shape validator.
 
-This is protocol validation only. It does not establish identity, authenticate
-a peer, create a WebRTC connection, send video, or dispatch remote input.
+A shared Rust `ConsentGate` now separately requires explicit peer approval
+before capture or controller permissions can be granted. Video sending and
+remote-control acceptance remain disabled until their respective consent flags
+are granted, and revocation clears all permissions. Unit tests cover denial
+before peer approval, independent sender/controller grants, and revocation.
+
+This is authorization-state validation only. It does not establish identity,
+authenticate a peer, create a WebRTC connection, send video, or dispatch remote input.
 Those integrations remain unimplemented until the signaling, cryptographic
 identity, consent, and transport layers are connected and tested.
 
