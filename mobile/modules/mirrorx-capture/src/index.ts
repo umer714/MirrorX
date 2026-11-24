@@ -9,6 +9,7 @@ type MirrorXCaptureNativeModule = {
   requestScreenCapturePermission(): Promise<CapturePermissionResult>;
   hasApprovedScreenCapturePermission(): boolean;
   clearApprovedScreenCapturePermission(): boolean;
+  stopProjectionSession(): boolean;
 };
 
 const nativeModule =
@@ -31,4 +32,8 @@ export function hasApprovedScreenCapturePermission(): boolean {
 
 export function clearApprovedScreenCapturePermission(): boolean {
   return nativeModule?.clearApprovedScreenCapturePermission() ?? false;
+}
+
+export function stopProjectionSession(): boolean {
+  return nativeModule?.stopProjectionSession() ?? false;
 }
