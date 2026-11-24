@@ -151,9 +151,71 @@ impl ControlGate {
     }
 }
 
+
+/// Explicit consent gates shared by desktop and mobile adapters.
+///
+/// This is an authorization state model, not peer authentication. Adapters must
+/// call the grant methods only after the corresponding user/OS approval.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct ConsentGate {
+    peer_approved: bool,
+    capture_approved: bool,
+    control_approved: bool,
+}
+
+impl ConsentGate {
+    pub fn approve_peer(&mut self) { self.peer_approved = true; }
+
+    pub fn grant_capture(&mut self) -> Result<(), ConsentError> {
+        if !self.peer_approved { return Err(ConsentError::PeerNotApproved); }
+        self.capture_approved = true;
+        Ok(())
+    }
+
+    pub fn grant_control(&mut self) -> Result<(), ConsentError> {
+        if !self.peer_approved { return Err(ConsentError::PeerNotApproved); }
+        self.control_approved = true;
+        Ok(())
+    }
+
+    pub fn can_send_video(&self) -> bool {
+        self.peer_approved && self.capture_approved
+    }
+
+    pub fn can_accept_control(&self) -> bool {
+        self.peer_approved && self.control_approved
+    }
+
+    /// Revoke all permissions immediately when either side ends the session.
+    pub fn revoke(&mut self) { *self = Self::default(); }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConsentError { PeerNotApproved }
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn consent_requires_peer_approval_and_is_revocable() {
+        let mut consent = ConsentGate::default();
+        assert_eq!(consent.grant_capture(), Err(ConsentError::PeerNotApproved));
+        assert_eq!(consent.grant_control(), Err(ConsentError::PeerNotApproved));
+        assert!(!consent.can_send_video());
+        assert!(!consent.can_accept_control());
+
+        consent.approve_peer();
+        consent.grant_capture().unwrap();
+        assert!(consent.can_send_video());
+        assert!(!consent.can_accept_control());
+
+        consent.grant_control().unwrap();
+        assert!(consent.can_accept_control());
+        consent.revoke();
+        assert!(!consent.can_send_video());
+        assert!(!consent.can_accept_control());
+    }
 
     #[test]
     fn session_requires_ordered_explicit_transitions() {
