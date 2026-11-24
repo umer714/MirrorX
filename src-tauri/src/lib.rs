@@ -261,6 +261,23 @@ mod tests {
     }
 
     #[test]
+    fn desktop_requires_explicit_consent_before_media_or_control() {
+        use mirrorx_transport::{ConsentError, ConsentGate};
+        let mut consent = ConsentGate::default();
+        assert_eq!(consent.grant_capture(), Err(ConsentError::PeerNotApproved));
+        assert_eq!(consent.grant_control(), Err(ConsentError::PeerNotApproved));
+        consent.approve_peer();
+        consent.grant_capture().unwrap();
+        assert!(consent.can_send_video());
+        assert!(!consent.can_accept_control());
+        consent.grant_control().unwrap();
+        assert!(consent.can_accept_control());
+        consent.revoke();
+        assert!(!consent.can_send_video());
+        assert!(!consent.can_accept_control());
+    }
+
+    #[test]
     fn desktop_uses_shared_versioned_control_contract() {
         use mirrorx_transport::{ApprovedShortcut, ControlEvent, ControlGate, ControlMessage};
         let mut gate = ControlGate::default();
