@@ -244,8 +244,22 @@ class MirrorXProjectionService : Service() {
     virtualDisplay?.release()
     virtualDisplay = null
     draining = false
-    drainThread?.join(300)
+    // The drain thread is the only native queue consumer. Never free its
+    // handle while JNI may still be inside nativePop/nativePush: a timed join
+    // followed by nativeDestroy could otherwise become a use-after-free.
+    val activeDrainThread = drainThread
+    var interrupted = false
+    if (activeDrainThread != null && activeDrainThread !== Thread.currentThread()) {
+      while (activeDrainThread.isAlive) {
+        try {
+          activeDrainThread.join()
+        } catch (_: InterruptedException) {
+          interrupted = true
+        }
+      }
+    }
     drainThread = null
+    if (interrupted) Thread.currentThread().interrupt()
     val queueHandle = nativeQueueHandle
     nativeQueueHandle = 0L
     if (queueHandle != 0L && MirrorXNativeQueue.ensureLoaded()) {
