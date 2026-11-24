@@ -155,7 +155,7 @@ export default function App() {
                     const stats = getCaptureStats();
                     setCaptureStatsMessage(
                       stats.active
-                        ? `H.264 encoded locally: ${stats.frames} frames · ${(stats.encodedBytes / 1024).toFixed(1)} KB · ${stats.width}×${stats.height}`
+                        ? `H.264 output: ${stats.frames} access units · ${stats.keyFrames} keyframes · ${(stats.encodedBytes / 1024).toFixed(1)} KB · ${stats.width}×${stats.height}`
                         : "No active capture session reported by Android."
                     );
                   }}
