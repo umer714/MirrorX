@@ -97,8 +97,8 @@ export default function App() {
           <Text style={styles.eyebrow}>MOBILE COMPANION</Text>
           <Text style={styles.heroTitle}>Connect your{ "\n" }world.</Text>
           <Text style={styles.heroDescription}>
-            Mirror your phone to your PC, or use your phone as a wireless
-            controller for your computer.
+            Android screen capture is available as a local foundation. Desktop pairing,
+            live streaming and remote controls are still being integrated.
           </Text>
         </View>
 
@@ -133,7 +133,15 @@ export default function App() {
             </View>
           </View>
 
-          {mode === "sender" && Platform.OS === "ios" ? (\n            <View style={styles.capturePermissionPanel}>\n              <Text style={styles.capturePermissionTitle}>IOS SCREEN CAPTURE</Text>\n              <Text style={styles.capturePermissionDescription}>\n                iOS ReplayKit broadcast capture has not been implemented yet. This build cannot stream an iPhone screen.\n              </Text>\n            </View>\n          ) : null}\n          {mode === "sender" && Platform.OS === "android" ? (
+          {mode === "sender" && Platform.OS === "ios" ? (
+            <View style={styles.capturePermissionPanel}>
+              <Text style={styles.capturePermissionTitle}>IOS SCREEN CAPTURE</Text>
+              <Text style={styles.capturePermissionDescription}>
+                iOS ReplayKit broadcast capture has not been implemented yet. This build cannot stream an iPhone screen.
+              </Text>
+            </View>
+          ) : null}
+          {mode === "sender" && Platform.OS === "android" ? (
             <View style={styles.capturePermissionPanel}>
               <Text style={styles.capturePermissionTitle}>ANDROID SCREEN PERMISSION</Text>
               <Text style={styles.capturePermissionDescription}>
@@ -206,8 +214,8 @@ export default function App() {
         <View style={styles.footer}>
           <Text style={styles.footerTitle}>PRIVATE BY DESIGN</Text>
           <Text style={styles.footerText}>
-            Local-network first. No account required for basic device pairing.
-            Your screen is not uploaded to a MirrorX cloud service.
+            Designed for local-network sessions. No desktop peer is connected in this
+            foundation build, and no screen video is sent to a cloud service.
           </Text>
           <Text style={styles.version}>MIRRORX MOBILE · 0.1.0 · DEVELOPMENT BUILD</Text>
         </View>
