@@ -8,12 +8,13 @@ This local Expo module starts a user-approved Android screen-capture session thr
 - Starts a non-exported foreground service with the `mediaProjection` service type.
 - Creates a VirtualDisplay and feeds it into an Android MediaCodec H.264 encoder.
 - Tracks encoded access units, encoded byte count, keyframes, codec configuration bytes, and capture resolution.
+- Validates output buffer bounds and counts encoded bytes directly from MediaCodec metadata without allocating a discarded per-frame copy.
 - Shows an ongoing system notification while capture is active.
 - Stops capture resources when the user requests Stop or Android revokes the projection.
 
 ## Not implemented yet
 
-- Encoded H.264 access units are currently counted locally and discarded after the codec buffer is released.
+- Encoded H.264 access units are counted locally and released; they are not retained or transmitted.
 - No LAN discovery, pairing, transport, receiver, or live playback is connected.
 - The current status counters prove encoder output only; they do not prove that a desktop received video.
 
