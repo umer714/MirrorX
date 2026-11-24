@@ -64,6 +64,22 @@ The service now copies each encoded access unit from MediaCodec into the shared 
 
 Not implemented. The planned approach is a ReplayKit Broadcast Upload Extension, subject to current iOS SDK constraints and App Store requirements. It requires macOS, Xcode, an appropriate Apple developer signing setup, and physical-device testing. Do not label the iOS app as a working sender until that build and test path exists.
 
+## Shared transport contract foundation
+
+The `crates/mirrorx-transport` crate now defines a versioned session lifecycle
+(`idle → pairing → connected → streaming → closing`) and a narrow controller
+event schema. It rejects invalid session identifiers, out-of-order/replayed
+control sequence numbers, oversized pointer deltas, invalid key codes, and
+control bursts above 60 events per second. The desktop Rust crate depends on
+this shared contract, and the mobile TypeScript client has a matching strict
+message-shape validator.
+
+This is protocol validation only. It does not establish identity, authenticate
+a peer, create a WebRTC connection, send video, or dispatch remote input.
+Those integrations remain unimplemented until the signaling, cryptographic
+identity, consent, and transport layers are connected and tested.
+
+
 ## Remote-control safety
 
 The controller sends only intentional pointer, key, and approved shortcut events to the paired desktop. No background input injection, hidden control, credential capture, or bypass of desktop consent. Desktop can revoke the mobile controller at any time.
