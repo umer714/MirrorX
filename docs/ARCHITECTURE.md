@@ -53,7 +53,7 @@ The scrcpy window is separate from MirrorX at this stage; its video surface has 
 - Track output access units, bytes, keyframes, codec configuration size, and resolution.
 - Keep an ongoing notification visible and stop capture when the user or operating system ends the projection.
 
-The encoded access-unit copy is currently used only for local accounting and is discarded. There is no LAN sender, pairing, receiver, or playback implementation yet.
+Encoded access units are currently counted from MediaCodec metadata without a per-frame copy, then released. They are not retained or transmitted. There is no LAN sender, pairing, receiver, or playback implementation yet.
 
 ## 5. Planned secure transport boundary
 
