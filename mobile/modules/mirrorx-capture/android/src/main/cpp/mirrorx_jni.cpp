@@ -44,11 +44,22 @@ Java_expo_modules_mirrorxcapture_MirrorXNativeQueue_nativePop(
   const int32_t status = mirrorx_h264_queue_pop(from_handle(handle), bytes.data(), bytes.size(),
                                                  &length, &keyframe, &pts_micros);
   if (status != 1 || length > bytes.size()) return nullptr;
-  jbyteArray result = env->NewByteArray(static_cast<jsize>(length));
-  if (result == nullptr) return nullptr;
-  env->SetByteArrayRegion(result, 0, static_cast<jsize>(length),
+  jbyteArray payload = env->NewByteArray(static_cast<jsize>(length));
+  if (payload == nullptr) return nullptr;
+  env->SetByteArrayRegion(payload, 0, static_cast<jsize>(length),
                           reinterpret_cast<const jbyte*>(bytes.data()));
-  return result;
+  if (env->ExceptionCheck()) return nullptr;
+
+  jclass frame_class = env->FindClass("expo/modules/mirrorxcapture/MirrorXEncodedFrame");
+  if (frame_class == nullptr) return nullptr;
+  jmethodID constructor = env->GetMethodID(frame_class, "<init>", "([BZJ)V");
+  if (constructor == nullptr) return nullptr;
+  jobject frame = env->NewObject(frame_class, constructor, payload,
+                                 keyframe ? JNI_TRUE : JNI_FALSE,
+                                 static_cast<jlong>(pts_micros));
+  env->DeleteLocalRef(payload);
+  env->DeleteLocalRef(frame_class);
+  return frame;
 }
 
 extern "C" JNIEXPORT void JNICALL
