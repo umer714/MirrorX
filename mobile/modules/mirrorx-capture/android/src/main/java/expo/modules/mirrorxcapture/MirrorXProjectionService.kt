@@ -159,6 +159,7 @@ class MirrorXProjectionService : Service() {
                     val bufferEnd = info.offset.toLong() + info.size.toLong()
                     if (info.offset >= 0 && info.size > 0 && bufferEnd <= output.limit().toLong()) {
                       val frameBuffer = output.duplicate()
+                      frameBuffer.clear()
                       frameBuffer.position(info.offset)
                       frameBuffer.limit(info.offset + info.size)
                       val frameData = ByteArray(info.size)
