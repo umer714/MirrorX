@@ -12,10 +12,13 @@ cargo ndk --version >/dev/null 2>&1 || {
 }
 
 mkdir -p "$OUTPUT_DIR"
+# cargo-ndk runs cargo metadata from its working directory; this repository has
+# no top-level Cargo workspace, so enter the standalone media crate first.
+cd "$ROOT_DIR/crates/mirrorx-media"
 cargo ndk \
   -t arm64-v8a \
   -t armeabi-v7a \
   -t x86_64 \
   -p 24 \
   -o "$OUTPUT_DIR" \
-  build --release --manifest-path "$MANIFEST" -p mirrorx-media
+  build --release
