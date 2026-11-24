@@ -9,6 +9,8 @@ export type CaptureStats = {
   active: boolean;
   frames: number;
   encodedBytes: number;
+  keyFrames: number;
+  codecConfigBytes: number;
   width: number;
   height: number;
 };
@@ -48,5 +50,5 @@ export function stopProjectionSession(): boolean {
 }
 
 export function getCaptureStats(): CaptureStats {
-  return nativeModule?.getCaptureStats() ?? { active: false, frames: 0, encodedBytes: 0, width: 0, height: 0 };
+  return nativeModule?.getCaptureStats() ?? { active: false, frames: 0, encodedBytes: 0, keyFrames: 0, codecConfigBytes: 0, width: 0, height: 0 };
 }
