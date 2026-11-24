@@ -9,7 +9,7 @@ import {
   View,
   Platform,
 } from "react-native";
-import { requestScreenCapturePermission } from "./modules/mirrorx-capture/src";
+import { requestScreenCapturePermission, stopProjectionSession } from "./modules/mirrorx-capture/src";
 
 type Mode = "sender" | "controller";
 
@@ -67,7 +67,7 @@ export default function App() {
       const result = await requestScreenCapturePermission();
       setCapturePermission(result.granted);
       setCaptureMessage(result.granted
-        ? "Android permission approved. Live streaming is the next integration step."
+        ? "Android screen session is active with a visible notification. Frame capture and PC streaming are next."
         : "Permission was not granted. You can try again whenever you are ready.");
     } catch (error) {
       setCaptureMessage(error instanceof Error ? error.message : "Unable to request screen-capture permission.");
@@ -144,9 +144,22 @@ export default function App() {
                 style={styles.capturePermissionButton}
               >
                 <Text style={styles.capturePermissionButtonText}>
-                  {capturePermission ? "Permission approved" : "Request screen permission"}
+                  {capturePermission ? "Screen session active" : "Start screen session"}
                 </Text>
               </Pressable>
+              {capturePermission ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => {
+                    const stopped = stopProjectionSession();
+                    setCapturePermission(false);
+                    setCaptureMessage(stopped ? "Screen session stop requested." : "Unable to stop the screen session.");
+                  }}
+                  style={[styles.capturePermissionButton, { backgroundColor: "#34384D" }]}
+                >
+                  <Text style={styles.capturePermissionButtonText}>Stop screen session</Text>
+                </Pressable>
+              ) : null}
               {captureMessage ? <Text style={styles.capturePermissionMessage}>{captureMessage}</Text> : null}
             </View>
           ) : null}
