@@ -1,6 +1,6 @@
 # MirrorX — Development Roadmap
 
-A milestone is complete only after its features are implemented and tested. A successful Vercel web build does not mean the Windows desktop app or mirroring engine is complete.
+A milestone is complete only after its features are implemented and tested. A successful Vercel web build does not mean the desktop app or live mirroring engine is complete.
 
 ## Milestone 0 — Repository and web foundation
 
@@ -35,31 +35,43 @@ A milestone is complete only after its features are implemented and tested. A su
 - [x] Add Stop Session command.
 - [x] Add selected-device Start / Stop controls to the UI.
 - [x] Add Windows GitHub Actions build and Rust test checks.
-- [ ] Run the Windows CI workflow successfully.
+- [ ] Run the latest Windows CI workflow successfully.
 - [ ] Test start, stop, disconnect, and app-exit behavior with a real phone.
 - [ ] Embed the mirrored screen inside the MirrorX dashboard (currently separate scrcpy window).
 
-## Milestone 4 — Interaction and reliability
+## Milestone 4 — Android capture foundation
 
-- [ ] Verify mouse and keyboard interaction.
-- [ ] Add reconnect guidance.
-- [ ] Test multiple connected devices and explicit device selection.
-- [ ] Test common USB connection failures.
+- [x] Request Android's official MediaProjection consent.
+- [x] Start a visible, non-exported mediaProjection foreground service.
+- [x] Create a VirtualDisplay and H.264 MediaCodec encoder.
+- [x] Report local encoder access-unit, byte, keyframe, and resolution statistics.
+- [ ] Surface native encoder failures to the mobile UI.
+- [ ] Test capture start, stop, revocation, and device rotation on real Android hardware.
 
-## Milestone 5 — Optional capabilities
+## Milestone 5 — Secure local transport and receiver
 
-- [ ] Evaluate wireless connection workflow.
-- [ ] Evaluate screenshots and recording.
-- [ ] Evaluate clipboard support.
-- [ ] Evaluate multi-device sessions.
-- [ ] Review privacy implications before enabling each feature.
+- [ ] Select and integrate an established encrypted media transport (WebRTC preferred).
+- [ ] Implement short-lived authenticated pairing and user-approved QR flow.
+- [ ] Implement local peer discovery / connection setup.
+- [ ] Send H.264 media from Android with bounded buffering and backpressure.
+- [ ] Implement Windows receiver and live playback.
+- [ ] Add disconnect, reconnect, timeout, and session revocation handling.
+- [ ] Test end-to-end on a real Android phone and Windows PC.
 
-## Milestone 6 — Release preparation
+## Milestone 6 — Remote controller and iOS
+
+- [ ] Implement explicitly approved, authenticated remote input.
+- [ ] Add touchpad, keyboard, and constrained shortcut controls.
+- [ ] Implement iOS ReplayKit broadcast extension.
+- [ ] Build and test iOS with macOS, Xcode, and Apple signing.
+- [ ] Verify platform-specific permissions and lifecycle behavior.
+
+## Milestone 7 — Release preparation
 
 - [ ] Choose and document project licensing.
 - [ ] Audit third-party licenses and notices.
 - [ ] Add automated tests and build checks.
-- [ ] Package and test a Windows installer.
+- [ ] Package and test a Windows installer and Android build.
 - [ ] Add release notes, support guidance, and security reporting instructions.
 
 ## Release rule
