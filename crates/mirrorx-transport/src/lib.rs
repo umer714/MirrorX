@@ -311,7 +311,7 @@ impl SignalingMessage {
             Self::Offer { sdp, .. } | Self::Answer { sdp, .. } => {
                 if sdp.is_empty() { return Err(SignalingReject::EmptyPayload); }
                 if sdp.len() > MAX_SDP_BYTES { return Err(SignalingReject::PayloadTooLarge); }
-                if !sdp.starts_with("v=0\\r\\n") && !sdp.starts_with("v=0\\n") {
+                if !sdp.starts_with("v=0\r\n") && !sdp.starts_with("v=0\n") {
                     return Err(SignalingReject::InvalidSdp);
                 }
             }
@@ -368,7 +368,7 @@ impl SignalingGate {
         let offer = SignalingMessage::Offer {
             version: SIGNALING_PROTOCOL_VERSION,
             session_id: "mirrorx-123".into(),
-            sdp: "v=0\\r\\no=- 1 1 IN IP4 127.0.0.1\\r\\n".into(),
+            sdp: "v=0\r\no=- 1 1 IN IP4 127.0.0.1\\r\\n".into(),
         };
         assert_eq!(offer.validate(), Ok(()));
         let invalid = SignalingMessage::IceCandidate {
@@ -377,15 +377,15 @@ impl SignalingGate {
         };
         assert_eq!(invalid.validate(), Err(SignalingReject::InvalidCandidate));
         let oversized = SignalingMessage::Offer {
-            version: 1, session_id: "mirrorx-123".into(), sdp: format!("v=0\\n{}", "x".repeat(MAX_SDP_BYTES)),
+            version: 1, session_id: "mirrorx-123".into(), sdp: format!("v=0\n{}", "x".repeat(MAX_SDP_BYTES)),
         };
         assert_eq!(oversized.validate(), Err(SignalingReject::PayloadTooLarge));
     }
 
     #[test]
     fn signaling_gate_requires_offer_then_answer_and_stops_after_close() {
-        let offer = SignalingMessage::Offer { version: 1, session_id: "s-1".into(), sdp: "v=0\\n".into() };
-        let answer = SignalingMessage::Answer { version: 1, session_id: "s-1".into(), sdp: "v=0\\n".into() };
+        let offer = SignalingMessage::Offer { version: 1, session_id: "s-1".into(), sdp: "v=0\n".into() };
+        let answer = SignalingMessage::Answer { version: 1, session_id: "s-1".into(), sdp: "v=0\n".into() };
         let close = SignalingMessage::Close { version: 1, session_id: "s-1".into() };
         let mut gate = SignalingGate::default();
         assert_eq!(gate.accept(&answer), Err(SignalingReject::InvalidSessionId));
