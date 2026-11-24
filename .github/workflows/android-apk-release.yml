@@ -1,0 +1,85 @@
+name: MirrorX Android standalone APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/mobile-apps]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/android-apk-release.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-android-release:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: platform-tools
+          accept-android-sdk-licenses: true
+
+      - name: Install Android SDK packages
+        run: sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate native Android project
+        run: npx expo prebuild --platform android --non-interactive
+
+      - name: Build release APK with embedded JavaScript bundle
+        working-directory: mobile/android
+        run: ./gradlew --no-daemon assembleRelease
+
+      - name: Sign standalone APK for testing
+        working-directory: mobile
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          test -f "$APK"
+          keytool -genkeypair -v \
+            -keystore mirrorx-ci-test.keystore \
+            -storepass mirrorx-test-only \
+            -keypass mirrorx-test-only \
+            -alias mirrorx-test \
+            -keyalg RSA -keysize 2048 -validity 3650 \
+            -dname "CN=MirrorX CI Test,O=MirrorX,C=PK"
+          BUILD_TOOLS="$ANDROID_HOME/build-tools/35.0.0"
+          "$BUILD_TOOLS/zipalign" -v -p 4 "$APK" android/app/build/outputs/apk/release/mirrorx-aligned.apk
+          "$BUILD_TOOLS/apksigner" sign \
+            --ks mirrorx-ci-test.keystore \
+            --ks-pass pass:mirrorx-test-only \
+            --key-pass pass:mirrorx-test-only \
+            --out android/app/build/outputs/apk/release/MirrorX-standalone.apk \
+            android/app/build/outputs/apk/release/mirrorx-aligned.apk
+          "$BUILD_TOOLS/apksigner" verify --verbose android/app/build/outputs/apk/release/MirrorX-standalone.apk
+          rm -f mirrorx-ci-test.keystore android/app/build/outputs/apk/release/mirrorx-aligned.apk
+
+      - name: Upload standalone APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: mirrorx-android-standalone
+          path: mobile/android/app/build/outputs/apk/release/MirrorX-standalone.apk
+          if-no-files-found: error
+          retention-days: 14
