@@ -54,7 +54,14 @@ jobs:
 
       - name: Build debug APK
         working-directory: mobile/android
-        run: ./gradlew assembleDebug
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if ./gradlew --refresh-dependencies assembleDebug; then exit 0; fi
+            echo "Gradle dependency resolution/build failed (attempt ${attempt}/3); retrying..."
+            sleep 15
+          done
+          exit 1
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
