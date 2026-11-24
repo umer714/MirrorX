@@ -70,6 +70,7 @@ class MirrorXProjectionService : Service() {
     try {
       val manager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
       val activeProjection = manager.getMediaProjection(resultCode, resultData)
+        ?: throw IllegalStateException("Android did not provide an active screen projection.")
       projection = activeProjection
       activeProjection.registerCallback(object : MediaProjection.Callback() {
         override fun onStop() {
