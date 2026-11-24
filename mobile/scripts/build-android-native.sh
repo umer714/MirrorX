@@ -3,7 +3,6 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUTPUT_DIR="$ROOT_DIR/mobile/modules/mirrorx-capture/android/src/main/jniLibs"
-MANIFEST="$ROOT_DIR/crates/mirrorx-media/Cargo.toml"
 
 command -v cargo >/dev/null 2>&1 || { echo "Rust toolchain is required." >&2; exit 1; }
 cargo ndk --version >/dev/null 2>&1 || {
