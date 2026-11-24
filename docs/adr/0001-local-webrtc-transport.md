@@ -93,3 +93,12 @@ connection, exchange SDP over a network, or transmit video. Pairing-ticket
 issuance, expiry/single-use enforcement, WebRTC adapter integration, and
 real-device interoperability remain required before an end-to-end session can
 be claimed.
+
+
+### Verified WebRTC implementation target — 2026-11-25
+
+The current upstream release inspected for the prototype is webrtc-rs **v0.17.3**. Its tagged H.264 example uses `MediaEngine::register_default_codecs`, `APIBuilder`, `RTCConfiguration`, `RTCPeerConnection::add_track`, and `TrackLocalStaticSample::write_sample`. The H.264 file reader yields Annex-B NAL units; the example writes samples through the H.264 static sample track. This is a verified API reference, not an integration in MirrorX. The upstream example's stdin/base64 signaling is demonstration-only and must not be copied as MirrorX's production pairing protocol.
+
+Before integrating the Android encoder, MirrorX must form complete access-unit samples, preserve correct frame durations from MediaCodec presentation timestamps (not one sample per NAL with a guessed duration), normalize the NAL framing to Annex-B, and negotiate H.264 profile/packetization compatibility. Android codec-specific data must be parsed/normalized rather than blindly concatenated if the device reports a non-Annex-B representation. The sender must also consume RTCP feedback and expose transport/queue metrics.
+
+Android capture telemetry now distinguishes encoded frames from native queue outcomes: accepted frames, queue-policy drops (including keyframe recovery), and invalid/push errors. This makes it possible to tell whether capture/encoding is working while the transport sender is still absent. Queue acceptance is not proof of network transmission or remote rendering.
