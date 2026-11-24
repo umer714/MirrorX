@@ -63,7 +63,7 @@ class MirrorXCaptureModule : Module() {
 
     Function("getCaptureStats") {
       val context = appContext.reactContext ?: return@Function mapOf(
-        "active" to false, "frames" to 0L, "encodedBytes" to 0L, "keyFrames" to 0L, "codecConfigBytes" to 0, "width" to 0, "height" to 0, "lastError" to ""
+        "active" to false, "frames" to 0L, "encodedBytes" to 0L, "keyFrames" to 0L, "queueAcceptedFrames" to 0L, "queueDroppedFrames" to 0L, "queuePushErrors" to 0L, "codecConfigBytes" to 0, "width" to 0, "height" to 0, "lastError" to ""
       )
       val prefs = context.getSharedPreferences(MirrorXProjectionService.PREFS, Context.MODE_PRIVATE)
       mapOf(
@@ -71,6 +71,9 @@ class MirrorXCaptureModule : Module() {
         "frames" to prefs.getLong(MirrorXProjectionService.KEY_FRAMES, 0L),
         "encodedBytes" to prefs.getLong(MirrorXProjectionService.KEY_ENCODED_BYTES, 0L),
         "keyFrames" to prefs.getLong(MirrorXProjectionService.KEY_KEY_FRAMES, 0L),
+        "queueAcceptedFrames" to prefs.getLong(MirrorXProjectionService.KEY_QUEUE_ACCEPTED_FRAMES, 0L),
+        "queueDroppedFrames" to prefs.getLong(MirrorXProjectionService.KEY_QUEUE_DROPPED_FRAMES, 0L),
+        "queuePushErrors" to prefs.getLong(MirrorXProjectionService.KEY_QUEUE_PUSH_ERRORS, 0L),
         "codecConfigBytes" to prefs.getInt(MirrorXProjectionService.KEY_CODEC_CONFIG_BYTES, 0),
         "width" to prefs.getInt(MirrorXProjectionService.KEY_WIDTH, 0),
         "height" to prefs.getInt(MirrorXProjectionService.KEY_HEIGHT, 0),
