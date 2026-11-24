@@ -58,8 +58,11 @@ A milestone is complete only after its features are implemented and tested. A su
 - [ ] Implement local peer discovery / connection setup.
 - [x] Add shared H.264 Annex-B normalization, IDR/SPS/PPS inspection, and bounded keyframe-aware queue primitives with desktop CI coverage.
 - [x] Export a thread-safe C ABI and header for native H.264 queue access; test frame copying, queue-empty behavior, invalid inputs, and output-buffer backpressure.
-- [ ] Build the shared media crate for Android ABIs and add the Kotlin/JNI binding.
-- [ ] Connect Android MediaCodec output to the shared queue and WebRTC sender with a bounded three-frame queue, keyframe recovery, and backpressure.
+- [x] Add Kotlin JNI wrapper and C++ shim for the shared native H.264 queue.
+- [x] Add Gradle/CMake integration and Cargo NDK build script for arm64-v8a, armeabi-v7a, and x86_64.
+- [x] Connect Android MediaCodec output to the shared bounded three-frame Rust queue.
+- [ ] Validate Android ABI builds and JNI loading in Android APK CI.
+- [ ] Add a WebRTC consumer/sender for the queued H.264 frames with keyframe recovery and backpressure.
 - [ ] Implement Windows receiver and live playback.
 - [ ] Add disconnect, reconnect, timeout, and session revocation handling.
 - [ ] Test end-to-end on a real Android phone and Windows PC.
