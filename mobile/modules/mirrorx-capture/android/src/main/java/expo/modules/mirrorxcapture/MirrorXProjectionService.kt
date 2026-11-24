@@ -37,6 +37,7 @@ class MirrorXProjectionService : Service() {
     super.onCreate()
     createNotificationChannel()
     saveStats(active = false, frames = 0L, bytes = 0L, keyFrames = 0L, configBytes = 0, width = 0, height = 0)
+    saveLastError("")
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -65,6 +66,7 @@ class MirrorXProjectionService : Service() {
       startForeground(NOTIFICATION_ID, buildNotification())
     }
 
+    saveLastError("")
     try {
       val manager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
       val activeProjection = manager.getMediaProjection(resultCode, resultData)
@@ -116,7 +118,9 @@ class MirrorXProjectionService : Service() {
       startEncoderDrain(videoEncoder)
       saveStats(active = true, frames = 0L, bytes = 0L, keyFrames = 0L, configBytes = 0, width = captureWidth, height = captureHeight)
     } catch (error: Throwable) {
+      saveLastError(classifyCaptureError(error))
       stopProjection()
+      saveLastError(classifyCaptureError(error))
       stopSelf()
       return START_NOT_STICKY
     }
@@ -167,6 +171,17 @@ class MirrorXProjectionService : Service() {
         }
       }
     }, "MirrorX-H264-Drain").also { it.start() }
+  }
+
+  private fun saveLastError(code: String) {
+    getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_LAST_ERROR, code).apply()
+  }
+
+  private fun classifyCaptureError(error: Throwable): String = when (error) {
+    is SecurityException -> "CAPTURE_PERMISSION_OR_FOREGROUND_SERVICE"
+    is IllegalArgumentException -> "INVALID_CAPTURE_CONFIGURATION"
+    is IllegalStateException -> "CAPTURE_CODEC_OR_PROJECTION_STATE"
+    else -> "CAPTURE_START_FAILED"
   }
 
   private fun saveStats(active: Boolean, frames: Long, bytes: Long, keyFrames: Long, configBytes: Int, width: Int, height: Int) {
@@ -242,6 +257,7 @@ class MirrorXProjectionService : Service() {
     const val KEY_CODEC_CONFIG_BYTES = "codec_config_bytes"
     const val KEY_WIDTH = "width"
     const val KEY_HEIGHT = "height"
+    const val KEY_LAST_ERROR = "last_error"
     private const val MIME_TYPE = "video/avc"
     private const val TARGET_FPS = 30
     private const val CHANNEL_ID = "mirrorx_screen_capture"
