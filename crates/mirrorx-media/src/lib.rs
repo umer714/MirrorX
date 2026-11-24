@@ -277,3 +277,98 @@ mod tests {
         assert_eq!(queue.dropped_frames(), 1);
     }
 }
+
+use std::sync::Mutex;
+
+const FFI_MAX_ACCESS_UNIT_BYTES: usize = 16 * 1024 * 1024;
+const FFI_OK: i32 = 1;
+const FFI_EMPTY: i32 = 0;
+const FFI_INVALID: i32 = -1;
+const FFI_BUFFER_TOO_SMALL: i32 = -2;
+
+/// Opaque, thread-safe queue handle for JNI/NDK integrations.
+pub struct MirrorXH264QueueHandle {
+    inner: Mutex<BoundedH264Queue>,
+}
+
+/// Create a bounded H.264 queue. Capacity is clamped to at least one frame.
+#[no_mangle]
+pub extern "C" fn mirrorx_h264_queue_new(capacity: usize) -> *mut MirrorXH264QueueHandle {
+    Box::into_raw(Box::new(MirrorXH264QueueHandle {
+        inner: Mutex::new(BoundedH264Queue::new(capacity)),
+    }))
+}
+
+/// Copy one encoded access unit into the queue.
+/// Returns 1 when queued, 0 when dropped by keyframe recovery, and -1 on invalid input.
+#[no_mangle]
+pub unsafe extern "C" fn mirrorx_h264_queue_push(
+    handle: *mut MirrorXH264QueueHandle,
+    data: *const u8,
+    len: usize,
+    keyframe: bool,
+    pts_micros: u64,
+) -> i32 {
+    if handle.is_null() || data.is_null() || len == 0 || len > FFI_MAX_ACCESS_UNIT_BYTES {
+        return FFI_INVALID;
+    }
+    // SAFETY: caller promises data points to len readable bytes.
+    let bytes = unsafe { std::slice::from_raw_parts(data, len) };
+    let Ok(mut queue) = (unsafe { &*handle }).inner.lock() else {
+        return FFI_INVALID;
+    };
+    if queue.push(H264Frame {
+        data: bytes.to_vec(),
+        keyframe,
+        pts_micros,
+    }) {
+        FFI_OK
+    } else {
+        FFI_EMPTY
+    }
+}
+
+/// Copy the next queued frame into caller-owned memory.
+/// Returns 1 on success, 0 when empty, -2 if output is too small (frame retained),
+/// and -1 for invalid arguments or a poisoned queue.
+#[no_mangle]
+pub unsafe extern "C" fn mirrorx_h264_queue_pop(
+    handle: *mut MirrorXH264QueueHandle,
+    out: *mut u8,
+    out_capacity: usize,
+    out_len: *mut usize,
+    out_keyframe: *mut bool,
+    out_pts_micros: *mut u64,
+) -> i32 {
+    if handle.is_null() || out_len.is_null() || out_keyframe.is_null() || out_pts_micros.is_null() {
+        return FFI_INVALID;
+    }
+    // SAFETY: handle must be a live handle created by mirrorx_h264_queue_new.
+    let Ok(mut queue) = (unsafe { &*handle }).inner.lock() else {
+        return FFI_INVALID;
+    };
+    let Some(frame) = queue.frames.front() else {
+        return FFI_EMPTY;
+    };
+    unsafe {
+        *out_len = frame.data.len();
+        *out_keyframe = frame.keyframe;
+        *out_pts_micros = frame.pts_micros;
+    }
+    if out.is_null() || out_capacity < frame.data.len() {
+        return FFI_BUFFER_TOO_SMALL;
+    }
+    // SAFETY: caller supplies out_capacity writable bytes; length check ensures room.
+    unsafe { std::ptr::copy_nonoverlapping(frame.data.as_ptr(), out, frame.data.len()) };
+    queue.frames.pop_front();
+    FFI_OK
+}
+
+/// Destroy a queue handle created by mirrorx_h264_queue_new. Call exactly once.
+#[no_mangle]
+pub unsafe extern "C" fn mirrorx_h264_queue_free(handle: *mut MirrorXH264QueueHandle) {
+    if !handle.is_null() {
+        // SAFETY: caller must pass a live handle exactly once and never use it again.
+        drop(unsafe { Box::from_raw(handle) });
+    }
+}
