@@ -38,13 +38,15 @@ npm run tauri dev
 
 The USB device screen invokes ADB locally. Connect a phone with USB debugging enabled and approve the computer authorization prompt.
 
-Select the authorized device and choose **Start mirroring**. scrcpy opens in a separate desktop window. Use **Stop session** in MirrorX to stop the process launched by the app.
+For Wi-Fi, open **Wireless** in MirrorX. On Android, open Developer options → Wireless debugging → **Pair device with pairing code**. Enter the phone's IP address, the pairing port, and the six-digit pairing code shown by Android. After pairing succeeds, enter the separate connection port shown on the Wireless debugging screen and choose **Connect over Wi-Fi**. The phone and PC must be on the same network. Pairing and connection are separate ADB operations; scan again to verify that the device appears as authorized.
+
+Select an authorized device and choose **Start mirroring**. scrcpy opens in a separate desktop window. Use **Stop session** in MirrorX to stop the process launched by the app.
 
 The public website cannot access a computer's USB devices or launch local executables.
 
 ## Current testing status
 
-Rust unit tests cover ADB output parsing and device-serial validation. A Windows GitHub Actions workflow has been added to run frontend build, Rust tests, and Rust backend checks. The workflow and real-device behavior still need to be observed after the latest commits.
+Rust unit tests cover ADB output parsing, device-serial validation, and wireless endpoint validation. A Windows GitHub Actions workflow has been added to run frontend build, Rust tests, and Rust backend checks. The workflow and real-device behavior still need to be observed after the latest commits.
 
 ## Development safety checklist
 
