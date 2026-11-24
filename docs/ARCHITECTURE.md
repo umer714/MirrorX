@@ -1,77 +1,94 @@
-# MirrorX — Initial Architecture
+# MirrorX — Architecture
 
 ## 1. Product boundary
 
-MirrorX is a Windows-first desktop interface for connecting to and interacting with Android devices. USB is the first connection path.
+MirrorX is a local-first phone-to-PC mirroring and control project. The current desktop prototype is Windows-first and uses ADB plus scrcpy. The mobile project contains an Android MediaProjection/H.264 capture foundation. These are separate prototypes and are not yet connected end to end.
 
-The desktop application orchestrates local tools. Screen frames are not routed through a cloud backend.
+The public Vercel site is not the live screen transport path.
 
-## 2. High-level flow
+## 2. Current implementation
 
 ```text
+Windows desktop prototype
 React + TypeScript UI
         |
-        | Tauri invoke commands
+        | Tauri commands
         v
 Rust application core
         |
-        +---- ADB: list and verify Android devices
+        +---- ADB: local device discovery and authorization check
         |
-        +---- scrcpy: managed local child process
-        |
-        v
-Android device (USB initially)
+        +---- scrcpy: managed child process
+                     (opens a separate window)
 
-scrcpy currently opens its own desktop window.
-Embedding that video surface in MirrorX is a future milestone.
+Android mobile capture prototype
+User taps Start
+        |
+Android system MediaProjection consent
+        |
+Non-exported foreground capture service
+        |
+VirtualDisplay -> MediaCodec H.264 encoder
+        |
+Local diagnostic counters
+        |
+        X  No network transport or PC receiver yet
 ```
 
-## 3. Responsibilities
-
-### Desktop UI
+## 3. Desktop responsibilities
 
 - Show detected devices and their connection state.
 - Allow explicit selection of an authorized device.
 - Start and stop the scrcpy process launched by MirrorX.
-- Display understandable errors and troubleshooting guidance.
-
-### Rust core
-
-- Validate device identifiers before using them.
-- Launch local executables with argument arrays, never shell command strings.
+- Validate device identifiers and pass them as process arguments, never shell command strings.
 - Verify the selected device is in ADB's authorized `device` state before starting scrcpy.
-- Keep the child-process handle and provide a stop command.
-- Return structured errors without exposing phone contents.
 
-### ADB device discovery
+The scrcpy window is separate from MirrorX at this stage; its video surface has not been embedded.
 
-The `list_android_devices` command runs `adb devices -l` locally. It parses serial, state, model, product, and device fields. It does not change device settings, bypass authorization, or transmit device information to a server.
+## 4. Android capture responsibilities
 
-### scrcpy process prototype
+- Request the platform-owned MediaProjection consent after an explicit user action.
+- Run capture in a non-exported foreground service with the mediaProjection service type.
+- Feed a VirtualDisplay into a MediaCodec H.264 encoder.
+- Track output access units, bytes, keyframes, codec configuration size, and resolution.
+- Keep an ongoing notification visible and stop capture when the user or operating system ends the projection.
 
-The `start_scrcpy` command verifies the selected serial with ADB and launches `scrcpy --serial <serial>` as a managed child process. The `stop_scrcpy` command terminates that child process. The scrcpy window is separate from MirrorX at this stage; the video surface has not been embedded.
+The encoded access-unit copy is currently used only for local accounting and is discarded. There is no LAN sender, pairing, receiver, or playback implementation yet.
 
-Both `adb.exe` and `scrcpy.exe` must be installed and discoverable through PATH. The native process integration still needs a successful Windows build and real-device testing.
+## 5. Planned secure transport boundary
 
-## 4. Security and privacy
+The planned transport must use an established encrypted media transport such as WebRTC rather than a custom encryption protocol. Pairing must be explicit and authenticated; a QR code may carry a short-lived pairing offer, not a reusable permanent secret. The receiver must display the requesting device and require user approval before accepting media or control messages.
 
-- USB is the default connection path.
-- Device identifiers are restricted to a conservative character set and passed as process arguments.
+- Use authenticated signaling only for connection setup; do not relay screen media through Vercel or Supabase.
+- Encrypt media in transit using the selected transport's standard security mechanisms.
+- Bind remote-control messages to an approved paired session and a narrow command schema.
+- Reject unauthenticated peers and stale/replayed session credentials.
+- Bound queues and apply backpressure; discard stale video frames rather than allowing unbounded memory growth.
+- Provide visible session state and immediate Stop controls on both endpoints.
+- Keep device discovery and media transport local-network-first.
+
+These are design requirements, not implemented features.
+
+## 6. Security and privacy
+
+- USB is the current desktop prototype's connection path.
+- Android capture requires explicit OS permission and a visible foreground notification.
 - Never build shell command strings from UI input.
-- Wireless debugging must be opt-in and explain local-network implications.
-- Do not send screen frames, device identifiers, or phone data to a remote service by default.
 - Do not attempt to bypass Android authorization or device security controls.
+- Do not send screen frames, device identifiers, or phone data to a remote service by default.
+- Remote input must be explicitly enabled and scoped to an approved paired session.
 
-## 5. Cloud services
+## 7. Cloud services
 
-Vercel may host a public website, documentation, and release information. It is not part of the live screen transport path.
+Vercel may host the public website, documentation, and release information. It is not part of the live screen transport path.
 
 Supabase is not required for local mirroring. It may be considered later for optional accounts or license entitlements with data collection documented and minimized.
 
-## 6. Decisions still open
+## 8. Open engineering decisions
 
-- Exact scrcpy version and distribution strategy.
-- Whether scrcpy binaries are bundled or separately installed.
-- Embedding the scrcpy video surface in the Tauri window.
-- MirrorX's own source-code license.
-- Update/signing strategy for Windows installers.
+- Exact scrcpy version, distribution strategy, and embedding approach.
+- WebRTC library and signaling/discovery implementation for Android and Windows.
+- QR pairing payload format, expiry, and session authorization lifecycle.
+- Windows installer signing and update strategy.
+- iOS ReplayKit implementation and Apple build/signing requirements.
+- MirrorX's own source-code license and third-party notices.
