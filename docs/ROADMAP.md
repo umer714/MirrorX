@@ -57,6 +57,8 @@ A milestone is complete only after its features are implemented and tested. A su
 - [ ] Implement short-lived authenticated signaling and user-approved pairing flow.
 - [ ] Implement local peer discovery / connection setup.
 - [x] Add shared H.264 Annex-B normalization, IDR/SPS/PPS inspection, and bounded keyframe-aware queue primitives with desktop CI coverage.
+- [x] Export a thread-safe C ABI and header for native H.264 queue access; test frame copying, queue-empty behavior, invalid inputs, and output-buffer backpressure.
+- [ ] Build the shared media crate for Android ABIs and add the Kotlin/JNI binding.
 - [ ] Connect Android MediaCodec output to the shared queue and WebRTC sender with a bounded three-frame queue, keyframe recovery, and backpressure.
 - [ ] Implement Windows receiver and live playback.
 - [ ] Add disconnect, reconnect, timeout, and session revocation handling.
