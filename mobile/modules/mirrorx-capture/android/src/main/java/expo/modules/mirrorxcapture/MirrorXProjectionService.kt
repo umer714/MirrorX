@@ -24,6 +24,7 @@ class MirrorXProjectionService : Service() {
   private var projection: MediaProjection? = null
   private var virtualDisplay: VirtualDisplay? = null
   private var encoder: MediaCodec? = null
+  @Volatile private var nativeQueueHandle = 0L
   @Volatile private var draining = false
   private var drainThread: Thread? = null
   @Volatile private var encodedFrames = 0L
@@ -105,6 +106,14 @@ class MirrorXProjectionService : Service() {
       val inputSurface = videoEncoder.createInputSurface()
       videoEncoder.start()
 
+      if (!MirrorXNativeQueue.ensureLoaded()) {
+        throw IllegalStateException("The MirrorX native media library is not packaged for this Android ABI.")
+      }
+      nativeQueueHandle = MirrorXNativeQueue.nativeCreate(3)
+      if (nativeQueueHandle == 0L) {
+        throw IllegalStateException("The native H.264 frame queue could not be created.")
+      }
+
       virtualDisplay = activeProjection.createVirtualDisplay(
         "MirrorX-H264-Capture",
         captureWidth,
@@ -147,13 +156,23 @@ class MirrorXProjectionService : Service() {
                 if (info.size > 0) {
                   val output = codec.getOutputBuffer(index)
                   if (output != null && (info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG) == 0) {
-                    // This stage records encoder output only. Avoid allocating/copying a frame
-                    // that is not yet consumed by a transport; the codec buffer is released below.
                     val bufferEnd = info.offset.toLong() + info.size.toLong()
-                    if (info.offset >= 0 && info.size > 0 && bufferEnd <= output.capacity().toLong()) {
+                    if (info.offset >= 0 && info.size > 0 && bufferEnd <= output.limit().toLong()) {
+                      val frameBuffer = output.duplicate()
+                      frameBuffer.position(info.offset)
+                      frameBuffer.limit(info.offset + info.size)
+                      val frameData = ByteArray(info.size)
+                      frameBuffer.get(frameData)
+                      val isKeyframe = (info.flags and MediaCodec.BUFFER_FLAG_KEY_FRAME) != 0
+                      val queueHandle = nativeQueueHandle
+                      if (queueHandle != 0L) {
+                        // Copy encoded H.264 into the bounded Rust queue. A future WebRTC
+                        // sender consumes this queue without routing video through JavaScript.
+                        MirrorXNativeQueue.nativePush(queueHandle, frameData, isKeyframe, info.presentationTimeUs)
+                      }
                       encodedFrames += 1
                       encodedBytes += info.size.toLong()
-                      if ((info.flags and MediaCodec.BUFFER_FLAG_KEY_FRAME) != 0) keyFrames += 1
+                      if (isKeyframe) keyFrames += 1
                       if (encodedFrames % 15L == 0L) {
                         saveStats(true, encodedFrames, encodedBytes, keyFrames, codecConfigBytes, captureWidth, captureHeight)
                       }
@@ -203,6 +222,11 @@ class MirrorXProjectionService : Service() {
     draining = false
     drainThread?.join(300)
     drainThread = null
+    val queueHandle = nativeQueueHandle
+    nativeQueueHandle = 0L
+    if (queueHandle != 0L && MirrorXNativeQueue.ensureLoaded()) {
+      MirrorXNativeQueue.nativeDestroy(queueHandle)
+    }
     encoder?.let { codec ->
       try { codec.stop() } catch (_: IllegalStateException) { }
       try { codec.release() } catch (_: IllegalStateException) { }
