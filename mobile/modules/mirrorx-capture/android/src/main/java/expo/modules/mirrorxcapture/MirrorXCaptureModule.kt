@@ -63,7 +63,7 @@ class MirrorXCaptureModule : Module() {
 
     Function("getCaptureStats") {
       val context = appContext.reactContext ?: return@Function mapOf(
-        "active" to false, "frames" to 0L, "encodedBytes" to 0L, "keyFrames" to 0L, "codecConfigBytes" to 0, "width" to 0, "height" to 0
+        "active" to false, "frames" to 0L, "encodedBytes" to 0L, "keyFrames" to 0L, "codecConfigBytes" to 0, "width" to 0, "height" to 0, "lastError" to ""
       )
       val prefs = context.getSharedPreferences(MirrorXProjectionService.PREFS, Context.MODE_PRIVATE)
       mapOf(
@@ -73,7 +73,8 @@ class MirrorXCaptureModule : Module() {
         "keyFrames" to prefs.getLong(MirrorXProjectionService.KEY_KEY_FRAMES, 0L),
         "codecConfigBytes" to prefs.getInt(MirrorXProjectionService.KEY_CODEC_CONFIG_BYTES, 0),
         "width" to prefs.getInt(MirrorXProjectionService.KEY_WIDTH, 0),
-        "height" to prefs.getInt(MirrorXProjectionService.KEY_HEIGHT, 0)
+        "height" to prefs.getInt(MirrorXProjectionService.KEY_HEIGHT, 0),
+        "lastError" to prefs.getString(MirrorXProjectionService.KEY_LAST_ERROR, "")
       )
     }
 
