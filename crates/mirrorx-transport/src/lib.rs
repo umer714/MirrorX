@@ -371,6 +371,10 @@ impl SignalingGate {
             sdp: "v=0\r\no=- 1 1 IN IP4 127.0.0.1\\r\\n".into(),
         };
         assert_eq!(offer.validate(), Ok(()));
+        let escaped_line_endings = SignalingMessage::Offer {
+            version: 1, session_id: "mirrorx-123".into(), sdp: r"v=0\\r\\n".into(),
+        };
+        assert_eq!(escaped_line_endings.validate(), Err(SignalingReject::InvalidSdp));
         let invalid = SignalingMessage::IceCandidate {
             version: 1, session_id: "mirrorx-123".into(),
             candidate: "not-a-candidate".into(), sdp_mid: None, sdp_mline_index: None,
