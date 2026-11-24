@@ -19,7 +19,7 @@ The web application is not a relay for live screen media. The intended media pat
 - Desktop Rust code can discover ADB devices and launch/stop a local scrcpy child process. scrcpy opens in a separate window.
 - Android mobile UI and a native MediaProjection foreground service exist.
 - Android service creates a VirtualDisplay and H.264 MediaCodec encoder and reports local encoder statistics.
-- Encoded H.264 access units are not transmitted; they are currently discarded after local accounting.
+- Encoded H.264 access units are counted from MediaCodec metadata without allocating discarded per-frame copies; they are not retained or transmitted.
 - The Android capture prototype is not connected to the Windows scrcpy prototype.
 - Pairing, WebRTC, Windows video receiver, remote input, and iOS capture are not implemented.
 - Physical-device end-to-end behavior remains unverified.
