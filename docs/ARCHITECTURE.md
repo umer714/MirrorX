@@ -60,17 +60,18 @@ Encoded access units are currently counted from MediaCodec metadata without a pe
 
 ## 5. Planned secure transport boundary
 
-The planned transport must use an established encrypted media transport such as WebRTC rather than a custom encryption protocol. Pairing must be explicit and authenticated; a QR code may carry a short-lived pairing offer, not a reusable permanent secret. The receiver must display the requesting device and require user approval before accepting media or control messages.
+**Prototype decision:** use a shared Rust `webrtc-rs` transport core for Windows and Android, subject to Android ABI build and real-device interoperability gates. The Android MediaCodec encoder will feed encoded H.264 access units into a small JNI boundary; the Rust core will publish a WebRTC video track and a separate data channel. Windows will host the same Rust transport from the Tauri application. See [ADR-0001](adr/0001-local-webrtc-transport.md).
 
-- Use authenticated signaling only for connection setup; do not relay screen media through Vercel or Supabase.
-- Encrypt media in transit using the selected transport's standard security mechanisms.
-- Bind remote-control messages to an approved paired session and a narrow command schema.
+- Use authenticated, short-lived signaling only for connection setup; do not relay screen media through Vercel or Supabase.
+- Use WebRTC DTLS-SRTP for media and its protected data channel for approved session messages; do not invent a custom encryption protocol.
+- Bind remote-control messages to an approved paired session and a versioned allow-listed command schema.
 - Reject unauthenticated peers and stale/replayed session credentials.
-- Bound queues and apply backpressure; discard stale video frames rather than allowing unbounded memory growth.
+- Bound the video queue to three pending access units; discard stale frames under load and resume at a decodable keyframe.
+- Preserve H.264 codec configuration (SPS/PPS) and validate Annex-B versus length-prefixed NAL framing.
 - Provide visible session state and immediate Stop controls on both endpoints.
 - Keep device discovery and media transport local-network-first.
 
-These are design requirements, not implemented features.
+This is an architecture decision for a prototype spike, not an implemented transport. Android cross-compilation, pairing, video delivery, and real-device tests remain open.
 
 ## 6. Security and privacy
 
