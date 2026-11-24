@@ -8,8 +8,7 @@ type AndroidDevice = {
   product: string | null; device: string | null;
 };
 
-function App() {
-  if (!isTauri()) return <MarketingSite />;
+function DesktopApp() {
   const [mode, setMode] = useState<ConnectionMode>("usb");
   const [devices, setDevices] = useState<AndroidDevice[]>([]);
   const [selectedSerial, setSelectedSerial] = useState("");
@@ -209,4 +208,8 @@ function App() {
     </main>
   );
 }
+function App() {
+  return isTauri() ? <DesktopApp /> : <MarketingSite />;
+}
+
 export default App;
