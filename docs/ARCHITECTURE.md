@@ -71,7 +71,7 @@ Encoded access units are currently counted from MediaCodec metadata without a pe
 - Provide visible session state and immediate Stop controls on both endpoints.
 - Keep device discovery and media transport local-network-first.
 
-The platform-independent `crates/mirrorx-media` library now contains H.264 Annex-B normalization, IDR/SPS/PPS inspection, and a bounded keyframe-aware queue. The Windows Rust crate links it and its CI tests exercise the codec-configuration inspection. This is reusable media groundwork only: no network transport, JNI bridge, pairing, video delivery, or real-device test is implemented yet. Android cross-compilation remains an explicit gate.
+The platform-independent `crates/mirrorx-media` library contains H.264 Annex-B normalization, IDR/SPS/PPS inspection, and a bounded keyframe-aware queue. It now also exports a thread-safe C ABI (`crates/mirrorx-media/include/mirrorx_media.h`) for native callers to create a queue, copy encoded access units into it, and drain frames with explicit buffer-capacity/backpressure results. The crate emits `rlib`, `cdylib`, and `staticlib` artifacts, and unit tests cover C ABI ownership, copying, empty queues, invalid inputs, and retaining a frame when the caller's output buffer is too small. The Windows Rust crate links it and CI exercises codec-configuration inspection. This is reusable native media groundwork only: the Android JNI binding, Android NDK build integration, WebRTC transport, pairing, video delivery, and real-device test are not implemented yet. Android cross-compilation remains an explicit gate.
 
 ## 6. Security and privacy
 
