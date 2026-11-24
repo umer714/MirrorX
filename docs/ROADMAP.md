@@ -35,7 +35,7 @@ A milestone is complete only after its features are implemented and tested. A su
 - [x] Add Stop Session command.
 - [x] Add selected-device Start / Stop controls to the UI.
 - [x] Add Windows GitHub Actions build and Rust test checks.
-- [ ] Run the latest Windows CI workflow successfully.
+- [x] Run the latest Windows CI workflow successfully.
 - [ ] Test start, stop, disconnect, and app-exit behavior with a real phone.
 - [x] Add ADB Wireless debugging pair and connect commands with IP/port validation.
 - [x] Add desktop wireless pairing and connection form.
@@ -48,7 +48,7 @@ A milestone is complete only after its features are implemented and tested. A su
 - [x] Start a visible, non-exported mediaProjection foreground service.
 - [x] Create a VirtualDisplay and H.264 MediaCodec encoder.
 - [x] Report local encoder access-unit, byte, keyframe, and resolution statistics.
-- [ ] Surface native encoder failures to the mobile UI.
+- [x] Surface native encoder failures to the mobile UI.
 - [ ] Test capture start, stop, revocation, and device rotation on real Android hardware.
 
 ## Milestone 5 — Secure local transport and receiver
@@ -56,7 +56,7 @@ A milestone is complete only after its features are implemented and tested. A su
 - [x] Select a shared Rust WebRTC transport for the prototype (ADR-0001); Android build/interoperability gate remains.
 - [ ] Implement short-lived authenticated signaling and user-approved pairing flow.
 - [ ] Implement local peer discovery / connection setup.
-- [x] Add shared H.264 Annex-B normalization and bounded keyframe-aware queue primitives with unit tests.
+- [x] Add shared H.264 Annex-B normalization, IDR/SPS/PPS inspection, and bounded keyframe-aware queue primitives with desktop CI coverage.
 - [ ] Connect Android MediaCodec output to the shared queue and WebRTC sender with a bounded three-frame queue, keyframe recovery, and backpressure.
 - [ ] Implement Windows receiver and live playback.
 - [ ] Add disconnect, reconnect, timeout, and session revocation handling.
