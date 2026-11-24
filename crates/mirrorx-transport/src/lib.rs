@@ -263,3 +263,136 @@ mod tests {
         gate.validate(&ControlMessage { sequence: 61, event: ControlEvent::Shortcut { shortcut: ApprovedShortcut::Enter } }, 1_050).unwrap();
     }
 }
+
+
+/// Bounded, typed signaling messages exchanged before a WebRTC peer connection.
+/// Signaling transports must authenticate the pairing ticket out-of-band and
+/// enforce expiry/single-use; these structs only validate message shape.
+pub const SIGNALING_PROTOCOL_VERSION: u8 = 1;
+pub const MAX_SDP_BYTES: usize = 64 * 1024;
+pub const MAX_CANDIDATE_BYTES: usize = 4 * 1024;
+pub const MAX_SIGNALING_ID_BYTES: usize = 64;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum SignalingMessage {
+    Offer { version: u8, session_id: String, sdp: String },
+    Answer { version: u8, session_id: String, sdp: String },
+    IceCandidate { version: u8, session_id: String, candidate: String, sdp_mid: Option<String>, sdp_mline_index: Option<u16> },
+    EndOfCandidates { version: u8, session_id: String },
+    Close { version: u8, session_id: String },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SignalingReject {
+    UnsupportedVersion,
+    InvalidSessionId,
+    EmptyPayload,
+    PayloadTooLarge,
+    InvalidSdp,
+    InvalidCandidate,
+}
+
+impl SignalingMessage {
+    pub fn validate(&self) -> Result<(), SignalingReject> {
+        let (version, session_id) = match self {
+            Self::Offer { version, session_id, .. }
+            | Self::Answer { version, session_id, .. }
+            | Self::IceCandidate { version, session_id, .. }
+            | Self::EndOfCandidates { version, session_id }
+            | Self::Close { version, session_id } => (*version, session_id),
+        };
+        if version != SIGNALING_PROTOCOL_VERSION { return Err(SignalingReject::UnsupportedVersion); }
+        if session_id.is_empty() || session_id.len() > MAX_SIGNALING_ID_BYTES
+            || !session_id.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-') {
+            return Err(SignalingReject::InvalidSessionId);
+        }
+        match self {
+            Self::Offer { sdp, .. } | Self::Answer { sdp, .. } => {
+                if sdp.is_empty() { return Err(SignalingReject::EmptyPayload); }
+                if sdp.len() > MAX_SDP_BYTES { return Err(SignalingReject::PayloadTooLarge); }
+                if !sdp.starts_with("v=0\\r\\n") && !sdp.starts_with("v=0\\n") {
+                    return Err(SignalingReject::InvalidSdp);
+                }
+            }
+            Self::IceCandidate { candidate, sdp_mid, .. } => {
+                if candidate.is_empty() { return Err(SignalingReject::EmptyPayload); }
+                if candidate.len() > MAX_CANDIDATE_BYTES
+                    || sdp_mid.as_ref().is_some_and(|mid| mid.len() > 32) {
+                    return Err(SignalingReject::PayloadTooLarge);
+                }
+                if !candidate.starts_with("candidate:") { return Err(SignalingReject::InvalidCandidate); }
+            }
+            Self::EndOfCandidates { .. } | Self::Close { .. } => {}
+        }
+        Ok(())
+    }
+}
+
+/// Enforces per-session signaling order without performing network I/O.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct SignalingGate {
+    offer_seen: bool,
+    answer_seen: bool,
+    closed: bool,
+}
+
+impl SignalingGate {
+    pub fn accept(&mut self, message: &SignalingMessage) -> Result<(), SignalingReject> {
+        message.validate()?;
+        if self.closed { return Err(SignalingReject::InvalidSessionId); }
+        match message {
+            SignalingMessage::Offer { .. } if !self.offer_seen && !self.answer_seen => {
+                self.offer_seen = true;
+                Ok(())
+            }
+            SignalingMessage::Answer { .. } if self.offer_seen && !self.answer_seen => {
+                self.answer_seen = true;
+                Ok(())
+            }
+            SignalingMessage::IceCandidate { .. } if self.offer_seen && !self.closed => Ok(()),
+            SignalingMessage::EndOfCandidates { .. } if self.offer_seen && !self.closed => Ok(()),
+            SignalingMessage::Close { .. } => {
+                self.closed = true;
+                Ok(())
+            }
+            _ => Err(SignalingReject::InvalidSessionId),
+        }
+    }
+
+    pub fn is_closed(&self) -> bool { self.closed }
+}
+
+    #[test]
+    fn signaling_messages_are_bounded_and_shape_checked() {
+        let offer = SignalingMessage::Offer {
+            version: SIGNALING_PROTOCOL_VERSION,
+            session_id: "mirrorx-123".into(),
+            sdp: "v=0\\r\\no=- 1 1 IN IP4 127.0.0.1\\r\\n".into(),
+        };
+        assert_eq!(offer.validate(), Ok(()));
+        let invalid = SignalingMessage::IceCandidate {
+            version: 1, session_id: "mirrorx-123".into(),
+            candidate: "not-a-candidate".into(), sdp_mid: None, sdp_mline_index: None,
+        };
+        assert_eq!(invalid.validate(), Err(SignalingReject::InvalidCandidate));
+        let oversized = SignalingMessage::Offer {
+            version: 1, session_id: "mirrorx-123".into(), sdp: format!("v=0\\n{}", "x".repeat(MAX_SDP_BYTES)),
+        };
+        assert_eq!(oversized.validate(), Err(SignalingReject::PayloadTooLarge));
+    }
+
+    #[test]
+    fn signaling_gate_requires_offer_then_answer_and_stops_after_close() {
+        let offer = SignalingMessage::Offer { version: 1, session_id: "s-1".into(), sdp: "v=0\\n".into() };
+        let answer = SignalingMessage::Answer { version: 1, session_id: "s-1".into(), sdp: "v=0\\n".into() };
+        let close = SignalingMessage::Close { version: 1, session_id: "s-1".into() };
+        let mut gate = SignalingGate::default();
+        assert_eq!(gate.accept(&answer), Err(SignalingReject::InvalidSessionId));
+        gate.accept(&offer).unwrap();
+        gate.accept(&answer).unwrap();
+        gate.accept(&close).unwrap();
+        assert!(gate.is_closed());
+        assert_eq!(gate.accept(&offer), Err(SignalingReject::InvalidSessionId));
+    }
+
