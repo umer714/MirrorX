@@ -56,7 +56,8 @@ A milestone is complete only after its features are implemented and tested. A su
 - [x] Select a shared Rust WebRTC transport for the prototype (ADR-0001); Android build/interoperability gate remains.
 - [ ] Implement short-lived authenticated signaling and user-approved pairing flow.
 - [ ] Implement local peer discovery / connection setup.
-- [ ] Send H.264 media from Android with a bounded three-frame queue, keyframe recovery, and backpressure.
+- [x] Add shared H.264 Annex-B normalization and bounded keyframe-aware queue primitives with unit tests.
+- [ ] Connect Android MediaCodec output to the shared queue and WebRTC sender with a bounded three-frame queue, keyframe recovery, and backpressure.
 - [ ] Implement Windows receiver and live playback.
 - [ ] Add disconnect, reconnect, timeout, and session revocation handling.
 - [ ] Test end-to-end on a real Android phone and Windows PC.
