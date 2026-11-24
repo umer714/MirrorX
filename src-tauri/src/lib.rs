@@ -1,6 +1,8 @@
 use serde::Serialize;
 use std::{
+    net::{IpAddr, SocketAddr},
     process::{Child, Command},
+    str::FromStr,
     sync::Mutex,
 };
 use tauri::{Manager, State};
@@ -48,6 +50,53 @@ fn parse_adb_devices(output: &str) -> Vec<AndroidDevice> {
             model, product, device,
         })
     }).collect()
+}
+
+
+fn wireless_endpoint(host: &str, port: u16) -> Result<String, String> {
+    let ip = IpAddr::from_str(host.trim())
+        .map_err(|_| "Enter the phone's valid IPv4 or IPv6 address.".to_string())?;
+    if port == 0 {
+        return Err("Enter a valid Android wireless debugging port.".to_string());
+    }
+    Ok(SocketAddr::new(ip, port).to_string())
+}
+
+#[tauri::command]
+fn pair_android_wireless(host: String, port: u16, pairing_code: String) -> Result<String, String> {
+    let endpoint = wireless_endpoint(&host, port)?;
+    let code = pairing_code.trim();
+    if code.len() != 6 || !code.chars().all(|character| character.is_ascii_digit()) {
+        return Err("Android pairing code must contain exactly 6 digits.".to_string());
+    }
+    let output = Command::new("adb")
+        .args(["pair", endpoint.as_str(), code])
+        .output()
+        .map_err(|error| format!("ADB wireless pairing could not start: {error}"))?;
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    if !output.status.success() {
+        return Err(if stderr.is_empty() { stdout } else { stderr });
+    }
+    Ok(if stdout.is_empty() { "Android wireless pairing completed. Connect using the separate connection port shown on your phone.".to_string() } else { stdout })
+}
+
+#[tauri::command]
+fn connect_android_wireless(host: String, port: u16) -> Result<String, String> {
+    let endpoint = wireless_endpoint(&host, port)?;
+    let output = Command::new("adb")
+        .args(["connect", endpoint.as_str()])
+        .output()
+        .map_err(|error| format!("ADB wireless connection could not start: {error}"))?;
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    if !output.status.success() {
+        return Err(if stderr.is_empty() { stdout } else { stderr });
+    }
+    if stdout.to_ascii_lowercase().contains("failed") {
+        return Err(stdout);
+    }
+    Ok(if stdout.is_empty() { "ADB wireless connection request completed. Scan devices to verify the connection.".to_string() } else { stdout })
 }
 
 #[tauri::command]
@@ -134,6 +183,8 @@ pub fn run() {
         .manage(ScrcpySession(Mutex::new(None)))
         .invoke_handler(tauri::generate_handler![
             list_android_devices,
+            pair_android_wireless,
+            connect_android_wireless,
             start_scrcpy,
             stop_scrcpy,
             scrcpy_status
@@ -156,7 +207,7 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_adb_devices, valid_serial};
+    use super::{parse_adb_devices, valid_serial, wireless_endpoint};
 
     #[test]
     fn parses_authorized_and_unauthorized_devices() {
@@ -179,6 +230,13 @@ mod tests {
         assert!(valid_serial("ABC123"));
         assert!(valid_serial("192.168.1.20:5555"));
         assert!(valid_serial("emulator-5554"));
+    }
+
+    #[test]
+    fn validates_wireless_ip_and_port() {
+        assert_eq!(wireless_endpoint("192.168.1.12", 37123).unwrap(), "192.168.1.12:37123");
+        assert!(wireless_endpoint("not-an-ip", 37123).is_err());
+        assert!(wireless_endpoint("192.168.1.12", 0).is_err());
     }
 
     #[test]
