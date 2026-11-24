@@ -33,7 +33,7 @@ Java_expo_modules_mirrorxcapture_MirrorXNativeQueue_nativePush(
                                  keyframe == JNI_TRUE, static_cast<uint64_t>(pts_micros));
 }
 
-extern "C" JNIEXPORT jbyteArray JNICALL
+extern "C" JNIEXPORT jobject JNICALL
 Java_expo_modules_mirrorxcapture_MirrorXNativeQueue_nativePop(
     JNIEnv* env, jclass, jlong handle, jint max_bytes) {
   if (handle == kInvalidHandle || max_bytes <= 0 || max_bytes > kMaxFrameBytes) return nullptr;
