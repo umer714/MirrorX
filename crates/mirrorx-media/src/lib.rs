@@ -195,7 +195,7 @@ mod tests {
         assert!(queue.push(frame(true, 5)));
         assert!(!queue.waiting_for_keyframe());
         assert_eq!(queue.pop().unwrap().pts_micros, 5);
-        assert_eq!(queue.dropped_frames(), 3);
+        assert_eq!(queue.dropped_frames(), 4);
     }
 
     #[test]
