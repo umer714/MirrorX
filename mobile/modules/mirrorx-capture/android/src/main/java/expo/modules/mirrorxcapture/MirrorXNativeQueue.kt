@@ -1,5 +1,11 @@
 package expo.modules.mirrorxcapture
 
+internal data class MirrorXEncodedFrame(
+  val data: ByteArray,
+  val keyframe: Boolean,
+  val ptsMicros: Long
+)
+
 /**
  * JNI access to the shared Rust H.264 queue.
  *
@@ -25,6 +31,6 @@ internal object MirrorXNativeQueue {
 
   @JvmStatic external fun nativeCreate(capacity: Int): Long
   @JvmStatic external fun nativePush(queue: Long, data: ByteArray, keyframe: Boolean, ptsMicros: Long): Int
-  @JvmStatic external fun nativePop(queue: Long, maxBytes: Int): ByteArray?
+  @JvmStatic external fun nativePop(queue: Long, maxBytes: Int): MirrorXEncodedFrame?
   @JvmStatic external fun nativeDestroy(queue: Long)
 }
