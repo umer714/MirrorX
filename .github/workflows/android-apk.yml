@@ -23,6 +23,14 @@ jobs:
         with:
           node-version: 22
 
+      - name: Set up Rust Android targets
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --locked
+
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
