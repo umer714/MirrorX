@@ -94,6 +94,7 @@ pub enum ControlEvent {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ControlMessage {
+    pub version: u8,
     pub sequence: u64,
     pub event: ControlEvent,
 }
@@ -104,6 +105,7 @@ pub enum ControlReject {
     RateLimited,
     InvalidPointerDelta,
     InvalidKeyCode,
+    UnsupportedVersion,
 }
 
 /// Per-session guard. Caller supplies monotonic milliseconds from a monotonic clock.
@@ -122,11 +124,12 @@ impl Default for ControlGate {
 
 impl ControlGate {
     pub fn validate(&mut self, message: &ControlMessage, now_ms: u64) -> Result<(), ControlReject> {
+        if message.version != 1 { return Err(ControlReject::UnsupportedVersion); }
         if self.last_sequence.is_some_and(|last| message.sequence <= last) {
             return Err(ControlReject::ReplayOrOutOfOrder);
         }
         match &message.event {
-            ControlEvent::PointerMove { dx, dy } if dx.abs() > 1200 || dy.abs() > 1200 => {
+            ControlEvent::PointerMove { dx, dy } if dx.unsigned_abs() > 1200 || dy.unsigned_abs() > 1200 => {
                 return Err(ControlReject::InvalidPointerDelta);
             }
             ControlEvent::Key { key_code, .. } if !(1..=0xFE).contains(key_code) => {
@@ -178,7 +181,7 @@ mod tests {
     #[test]
     fn control_gate_rejects_replay_and_extreme_pointer_delta() {
         let mut gate = ControlGate::default();
-        let first = ControlMessage { sequence: 1, event: ControlEvent::PointerMove { dx: 12, dy: -8 } };
+        let first = ControlMessage { version: 1, sequence: 1, event: ControlEvent::PointerMove { dx: 12, dy: -8 } };
         gate.validate(&first, 100).unwrap();
         assert_eq!(gate.validate(&first, 110), Err(ControlReject::ReplayOrOutOfOrder));
         let invalid = ControlMessage { sequence: 2, event: ControlEvent::PointerMove { dx: 5000, dy: 0 } };
