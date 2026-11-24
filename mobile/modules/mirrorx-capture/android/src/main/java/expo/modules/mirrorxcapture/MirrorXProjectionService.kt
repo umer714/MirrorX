@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
+import android.content.pm.ServiceInfo
 import android.content.Intent
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
@@ -41,7 +42,15 @@ class MirrorXProjectionService : Service() {
       return START_NOT_STICKY
     }
 
-    startForeground(NOTIFICATION_ID, buildNotification())
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      startForeground(
+        NOTIFICATION_ID,
+        buildNotification(),
+        ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+      )
+    } else {
+      startForeground(NOTIFICATION_ID, buildNotification())
+    }
     try {
       val manager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
       projection = manager.getMediaProjection(resultCode, resultData)
