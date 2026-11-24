@@ -156,7 +156,9 @@ export default function App() {
                     setCaptureStatsMessage(
                       stats.active
                         ? `H.264 output: ${stats.frames} access units · ${stats.keyFrames} keyframes · ${(stats.encodedBytes / 1024).toFixed(1)} KB · ${stats.width}×${stats.height}`
-                        : "No active capture session reported by Android."
+                        : stats.lastError
+                          ? "Android capture could not start (" + stats.lastError + "). Check permission and try again."
+                          : "No active capture session reported by Android. Permission may have opened, but the encoder did not become active."
                     );
                   }}
                   style={[styles.capturePermissionButton, { backgroundColor: "#34384D" }]}
