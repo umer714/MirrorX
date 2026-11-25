@@ -195,7 +195,7 @@ impl H264WebRtcSender {
 
 #[cfg(test)]
 mod tests {
-    use super::{sample_duration, DEFAULT_FRAME_DURATION};
+    use super::{sample_duration, H264WebRtcSender, DEFAULT_FRAME_DURATION};
     use std::time::Duration;
 
     #[test]
@@ -213,5 +213,37 @@ mod tests {
     fn sender_rejects_duplicate_or_regressing_timestamps() {
         assert!(sample_duration(Some(100), 100).is_err());
         assert!(sample_duration(Some(100), 99).is_err());
+    }
+
+    #[tokio::test]
+    async fn creates_and_applies_a_real_local_sdp_offer_answer() {
+        use super::*;
+        let sender = H264WebRtcSender::new().await.unwrap();
+        let offer_sdp = sender.create_offer_sdp().await.unwrap();
+
+        let mut media_engine = MediaEngine::default();
+        media_engine.register_default_codecs().unwrap();
+        let mut registry = Registry::new();
+        registry = register_default_interceptors(registry, &mut media_engine).unwrap();
+        let api = APIBuilder::new()
+            .with_media_engine(media_engine)
+            .with_interceptor_registry(registry)
+            .build();
+        let receiver = api
+            .new_peer_connection(RTCConfiguration::default())
+            .await
+            .unwrap();
+
+        let offer = RTCSessionDescription::offer(offer_sdp).unwrap();
+        receiver.set_remote_description(offer).await.unwrap();
+        let answer = receiver.create_answer(None).await.unwrap();
+        let mut gathering_complete = receiver.gathering_complete_promise().await;
+        receiver.set_local_description(answer).await.unwrap();
+        let _ = gathering_complete.recv().await;
+        let answer_sdp = receiver.local_description().await.unwrap().sdp;
+
+        sender.apply_answer_sdp(answer_sdp).await.unwrap();
+        sender.close().await.unwrap();
+        receiver.close().await.unwrap();
     }
 }
