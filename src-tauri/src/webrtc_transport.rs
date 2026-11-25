@@ -32,8 +32,22 @@ use webrtc::{
 };
 
 const MAX_ACCESS_UNIT_BYTES: usize = 16 * 1024 * 1024;
+const MAX_SDP_BYTES: usize = 64 * 1024;
 const DEFAULT_FRAME_DURATION: Duration = Duration::from_micros(33_333);
 const MAX_FRAME_DURATION: Duration = Duration::from_millis(250);
+
+fn validate_answer_sdp(sdp: &str) -> Result<(), String> {
+    if sdp.is_empty() {
+        return Err("Remote SDP answer cannot be empty.".to_string());
+    }
+    if sdp.len() > MAX_SDP_BYTES {
+        return Err("Remote SDP answer exceeds the 64 KiB size limit.".to_string());
+    }
+    if !(sdp.starts_with("v=0\\r\\n") || sdp.starts_with("v=0\\n")) || sdp.contains('\\0') {
+        return Err("Remote SDP answer must begin with a valid SDP version line.".to_string());
+    }
+    Ok(())
+}
 
 fn sample_duration(previous_pts: Option<u64>, pts_micros: u64) -> Result<Duration, String> {
     match previous_pts {
@@ -134,9 +148,7 @@ impl H264WebRtcSender {
 
     /// Apply an answer received from the authenticated signaling layer.
     pub async fn apply_answer_sdp(&self, sdp: String) -> Result<(), String> {
-        if sdp.len() > 64 * 1024 || !sdp.starts_with("v=0") {
-            return Err("Remote SDP answer is malformed or exceeds the size limit.".to_string());
-        }
+        validate_answer_sdp(&sdp)?;
         let answer = RTCSessionDescription::answer(sdp)
             .map_err(|error| format!("Remote SDP answer could not be parsed: {error}"))?;
         self.peer
@@ -197,6 +209,18 @@ impl H264WebRtcSender {
 mod tests {
     use super::{sample_duration, H264WebRtcSender, DEFAULT_FRAME_DURATION};
     use std::time::Duration;
+
+    #[test]
+    fn remote_answer_sdp_is_strictly_bounded_and_well_formed() {
+        use super::validate_answer_sdp;
+        assert!(validate_answer_sdp("v=0\\r\\no=- 1 1 IN IP4 127.0.0.1\\r\\n").is_ok());
+        assert!(validate_answer_sdp("v=0\\n").is_ok());
+        assert!(validate_answer_sdp("v=0malformed").is_err());
+        assert!(validate_answer_sdp(r"v=0\\r\\n").is_err());
+        assert!(validate_answer_sdp("").is_err());
+        assert!(validate_answer_sdp(&format!("v=0\\n{}", "x".repeat(64 * 1024))).is_err());
+        assert!(validate_answer_sdp("v=0\\n\\0").is_err());
+    }
 
     #[test]
     fn sender_uses_a_reasonable_initial_frame_duration() {
