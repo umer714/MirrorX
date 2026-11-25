@@ -90,5 +90,5 @@ internal object H264CodecConfig {
     return output.toByteArray()
   }
 
-  private val HIGH_PROFILES = setOf(100, 110, 122, 144, 44, 83, 86, 118, 128, 138, 139, 134, 135)
+  private val HIGH_PROFILES = setOf(100, 110, 122, 144, 244, 44, 83, 86, 118, 128, 138, 139, 134, 135)
 }
