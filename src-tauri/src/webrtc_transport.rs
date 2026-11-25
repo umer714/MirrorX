@@ -159,7 +159,7 @@ impl H264WebRtcSender {
             let duration = match *previous {
                 None => DEFAULT_FRAME_DURATION,
                 Some(last) if pts_micros > last => {
-                    Duration::from_micros((pts_micros - last).min(MAX_FRAME_DURATION.as_micros() as u64))
+                    Duration::from_micros((pts_micros - last).clamp(1_000, MAX_FRAME_DURATION.as_micros() as u64))
                 }
                 Some(_) => return Err("H.264 presentation timestamps must increase monotonically.".to_string()),
             };
@@ -200,8 +200,10 @@ mod tests {
     }
 
     #[test]
-    fn sender_caps_large_timestamp_gaps() {
-        let gap = Duration::from_micros(900_000).min(MAX_FRAME_DURATION);
-        assert_eq!(gap, Duration::from_millis(250));
+    fn sender_clamps_timestamp_gaps_to_safe_sample_durations() {
+        let long_gap = Duration::from_micros(900_000).min(MAX_FRAME_DURATION);
+        let tiny_gap = Duration::from_micros(100).max(Duration::from_millis(1));
+        assert_eq!(long_gap, Duration::from_millis(250));
+        assert_eq!(tiny_gap, Duration::from_millis(1));
     }
 }
