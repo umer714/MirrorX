@@ -7,6 +7,8 @@ use std::{
 };
 use tauri::{Manager, State};
 
+mod webrtc_transport;
+
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 struct AndroidDevice {
