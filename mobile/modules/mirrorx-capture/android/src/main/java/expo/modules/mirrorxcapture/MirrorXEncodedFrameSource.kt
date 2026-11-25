@@ -42,7 +42,7 @@ internal class MirrorXEncodedFrameSource(
           }
         }
       } catch (error: Throwable) {
-        if (running) runCatching { onFailure(error) }
+        if (running && generation == workerGeneration) runCatching { onFailure(error) }
       } finally {
         if (generation == workerGeneration) {
           running = false
