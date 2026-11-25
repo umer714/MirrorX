@@ -23,3 +23,7 @@ This local Expo module starts a user-approved Android screen-capture session thr
 Android owns the screen-capture permission prompt. MirrorX does not bypass it. A fresh user-approved projection session is required according to Android's MediaProjection lifecycle rules. The foreground notification remains visible while capture is active.
 
 The next milestone is authenticated local pairing and encrypted media transport, followed by a Windows receiver and real-device end-to-end testing. Screen content must not be sent to a cloud service by default.
+
+## Native queue consumer lifecycle
+
+The internal encoded-frame consumer is single-owner/single-consumer. Its `close()` call interrupts and joins the drain worker before returning, including when the calling thread is interrupted (the interrupt flag is restored afterward). The native queue handle must not be destroyed until `close()` has returned. Callback failures are contained so an application callback cannot bypass worker cleanup.
