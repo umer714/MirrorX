@@ -160,7 +160,7 @@ class MirrorXProjectionService : Service() {
                   ByteArray(buffer.remaining()).also { bytes -> buffer.get(bytes) }
                 }
               }
-              codecConfigData = codecConfigParts.fold(ByteArray(0)) { combined, part -> combined + part }
+              codecConfigData = H264CodecConfig.toAnnexB(codecConfigParts)
               codecConfigBytes = codecConfigData.size
               saveStats(true, encodedFrames, encodedBytes, keyFrames, codecConfigBytes, captureWidth, captureHeight)
             }
