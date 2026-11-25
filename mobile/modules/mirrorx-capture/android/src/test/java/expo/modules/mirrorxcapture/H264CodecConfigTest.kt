@@ -112,4 +112,27 @@ class H264CodecConfigTest {
     }
   }
 
+
+  @Test
+  fun detectsSpsAndPpsAcrossThreeAndFourByteStartCodes() {
+    val config = byteArrayOf(0, 0, 0, 1, 0x67, 0x64, 0, 0x1f) +
+      byteArrayOf(0, 0, 1, 0x68, 0xee.toByte())
+    assert(H264CodecConfig.hasSpsAndPps(config))
+  }
+
+  @Test
+  fun doesNotTreatSingleParameterSetAsCompleteDecoderConfig() {
+    val spsOnly = byteArrayOf(0, 0, 0, 1, 0x67, 0x64, 0, 0x1f)
+    val ppsOnly = byteArrayOf(0, 0, 1, 0x68, 0xee.toByte())
+    assert(!H264CodecConfig.hasSpsAndPps(spsOnly))
+    assert(!H264CodecConfig.hasSpsAndPps(ppsOnly))
+  }
+
+  @Test
+  fun ignoresForbiddenParameterSetHeaders() {
+    val invalid = byteArrayOf(0, 0, 0, 1, 0xe7.toByte(), 0x64, 0, 0x1f) +
+      byteArrayOf(0, 0, 1, 0x68, 0xee.toByte())
+    assert(!H264CodecConfig.hasSpsAndPps(invalid))
+  }
+
 }
