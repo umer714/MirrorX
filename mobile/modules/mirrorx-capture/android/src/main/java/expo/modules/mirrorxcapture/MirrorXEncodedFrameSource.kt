@@ -17,15 +17,17 @@ internal class MirrorXEncodedFrameSource(
   private var running = false
 
   private var worker: Thread? = null
+  @Volatile private var generation = 0L
 
   @Synchronized
   fun start(): Boolean {
     if (running || queueHandle == 0L || !MirrorXNativeQueue.ensureLoaded()) return false
 
     running = true
+    val workerGeneration = ++generation
     worker = Thread({
       try {
-        while (running && !Thread.currentThread().isInterrupted) {
+        while (running && generation == workerGeneration && !Thread.currentThread().isInterrupted) {
           val frame = MirrorXNativeQueue.nativePop(queueHandle, MAX_ACCESS_UNIT_BYTES)
           if (frame != null) {
             onFrame(frame)
@@ -42,7 +44,12 @@ internal class MirrorXEncodedFrameSource(
       } catch (error: Throwable) {
         if (running) runCatching { onFailure(error) }
       } finally {
-        running = false
+        if (generation == workerGeneration) {
+          running = false
+          synchronized(this) {
+            if (worker === Thread.currentThread()) worker = null
+          }
+        }
       }
     }, "MirrorX-H264-Queue-Consumer").also {
       it.isDaemon = true
@@ -54,6 +61,7 @@ internal class MirrorXEncodedFrameSource(
   @Synchronized
   override fun close() {
     running = false
+    generation += 1
     val activeWorker = worker
     worker = null
     activeWorker?.interrupt()
