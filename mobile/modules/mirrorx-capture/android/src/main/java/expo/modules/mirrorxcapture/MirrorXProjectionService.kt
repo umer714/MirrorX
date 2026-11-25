@@ -205,6 +205,11 @@ class MirrorXProjectionService : Service() {
               }
             }
           }
+        } catch (_: IllegalArgumentException) {
+          // Invalid or unsupported codec-specific data must not silently kill the drain worker.
+          saveLastError("INVALID_H264_CODEC_CONFIG")
+          draining = false
+          break
         } catch (_: IllegalStateException) {
           break
         } catch (_: IndexOutOfBoundsException) {
