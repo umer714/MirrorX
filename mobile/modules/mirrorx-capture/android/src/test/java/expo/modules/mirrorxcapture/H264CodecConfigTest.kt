@@ -2,6 +2,8 @@ package expo.modules.mirrorxcapture
 
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class H264CodecConfigTest {
@@ -117,22 +119,22 @@ class H264CodecConfigTest {
   fun detectsSpsAndPpsAcrossThreeAndFourByteStartCodes() {
     val config = byteArrayOf(0, 0, 0, 1, 0x67, 0x64, 0, 0x1f) +
       byteArrayOf(0, 0, 1, 0x68, 0xee.toByte())
-    assert(H264CodecConfig.hasSpsAndPps(config))
+    assertTrue(H264CodecConfig.hasSpsAndPps(config))
   }
 
   @Test
   fun doesNotTreatSingleParameterSetAsCompleteDecoderConfig() {
     val spsOnly = byteArrayOf(0, 0, 0, 1, 0x67, 0x64, 0, 0x1f)
     val ppsOnly = byteArrayOf(0, 0, 1, 0x68, 0xee.toByte())
-    assert(!H264CodecConfig.hasSpsAndPps(spsOnly))
-    assert(!H264CodecConfig.hasSpsAndPps(ppsOnly))
+    assertFalse(H264CodecConfig.hasSpsAndPps(spsOnly))
+    assertFalse(H264CodecConfig.hasSpsAndPps(ppsOnly))
   }
 
   @Test
   fun ignoresForbiddenParameterSetHeaders() {
     val invalid = byteArrayOf(0, 0, 0, 1, 0xe7.toByte(), 0x64, 0, 0x1f) +
       byteArrayOf(0, 0, 1, 0x68, 0xee.toByte())
-    assert(!H264CodecConfig.hasSpsAndPps(invalid))
+    assertFalse(H264CodecConfig.hasSpsAndPps(invalid))
   }
 
 }
