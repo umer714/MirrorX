@@ -40,7 +40,7 @@ internal class MirrorXEncodedFrameSource(
           }
         }
       } catch (error: Throwable) {
-        if (running) onFailure(error)
+        if (running) runCatching { onFailure(error) }
       } finally {
         running = false
       }
@@ -58,11 +58,17 @@ internal class MirrorXEncodedFrameSource(
     worker = null
     activeWorker?.interrupt()
     if (activeWorker != null && activeWorker !== Thread.currentThread()) {
-      try {
-        activeWorker.join(STOP_JOIN_TIMEOUT_MS)
-      } catch (_: InterruptedException) {
-        Thread.currentThread().interrupt()
+      var interrupted = false
+      // Do not return while JNI may still be draining the native queue. The
+      // owner may destroy the queue handle immediately after close() returns.
+      while (activeWorker.isAlive) {
+        try {
+          activeWorker.join()
+        } catch (_: InterruptedException) {
+          interrupted = true
+        }
       }
+      if (interrupted) Thread.currentThread().interrupt()
     }
   }
 
@@ -71,6 +77,5 @@ internal class MirrorXEncodedFrameSource(
   private companion object {
     const val MAX_ACCESS_UNIT_BYTES = 16 * 1024 * 1024
     const val EMPTY_QUEUE_SLEEP_MS = 4L
-    const val STOP_JOIN_TIMEOUT_MS = 250L
   }
 }
