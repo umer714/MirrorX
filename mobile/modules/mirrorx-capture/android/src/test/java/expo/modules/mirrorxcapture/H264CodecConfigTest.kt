@@ -89,4 +89,27 @@ class H264CodecConfigTest {
     )
   }
 
+
+  @Test
+  fun rejectsTruncatedOrForbiddenRawParameterSetHeaders() {
+    assertThrows(IllegalArgumentException::class.java) {
+      H264CodecConfig.toAnnexB(listOf(byteArrayOf(0x67)))
+    }
+    assertThrows(IllegalArgumentException::class.java) {
+      H264CodecConfig.toAnnexB(listOf(byteArrayOf(0xe7.toByte(), 0x64)))
+    }
+  }
+
+  @Test
+  fun rejectsTruncatedParameterSetsInsideAvcc() {
+    val avcc = byteArrayOf(
+      1, 100, 0, 31, 0xff.toByte(), 0xe1.toByte(),
+      0, 1, 0x67,
+      1, 0, 2, 0x68, 0xee.toByte()
+    )
+    assertThrows(IllegalArgumentException::class.java) {
+      H264CodecConfig.toAnnexB(listOf(avcc))
+    }
+  }
+
 }
