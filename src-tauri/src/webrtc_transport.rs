@@ -43,7 +43,7 @@ fn validate_answer_sdp(sdp: &str) -> Result<(), String> {
     if sdp.len() > MAX_SDP_BYTES {
         return Err("Remote SDP answer exceeds the 64 KiB size limit.".to_string());
     }
-    if !(sdp.starts_with("v=0\\r\\n") || sdp.starts_with("v=0\\n")) || sdp.contains('\\0') {
+    if !(sdp.starts_with("v=0\r\n") || sdp.starts_with("v=0\n")) || sdp.contains('\0') {
         return Err("Remote SDP answer must begin with a valid SDP version line.".to_string());
     }
     Ok(())
@@ -213,13 +213,13 @@ mod tests {
     #[test]
     fn remote_answer_sdp_is_strictly_bounded_and_well_formed() {
         use super::validate_answer_sdp;
-        assert!(validate_answer_sdp("v=0\\r\\no=- 1 1 IN IP4 127.0.0.1\\r\\n").is_ok());
-        assert!(validate_answer_sdp("v=0\\n").is_ok());
+        assert!(validate_answer_sdp("v=0\r\no=- 1 1 IN IP4 127.0.0.1\r\n").is_ok());
+        assert!(validate_answer_sdp("v=0\n").is_ok());
         assert!(validate_answer_sdp("v=0malformed").is_err());
-        assert!(validate_answer_sdp(r"v=0\\r\\n").is_err());
+        assert!(validate_answer_sdp(r"v=0\r\n").is_err());
         assert!(validate_answer_sdp("").is_err());
-        assert!(validate_answer_sdp(&format!("v=0\\n{}", "x".repeat(64 * 1024))).is_err());
-        assert!(validate_answer_sdp("v=0\\n\\0").is_err());
+        assert!(validate_answer_sdp(&format!("v=0\n{}", "x".repeat(64 * 1024))).is_err());
+        assert!(validate_answer_sdp("v=0\n\0").is_err());
     }
 
     #[test]
