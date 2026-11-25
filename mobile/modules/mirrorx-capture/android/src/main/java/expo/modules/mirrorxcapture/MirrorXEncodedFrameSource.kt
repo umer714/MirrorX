@@ -46,9 +46,6 @@ internal class MirrorXEncodedFrameSource(
       } finally {
         if (generation == workerGeneration) {
           running = false
-          synchronized(this) {
-            if (worker === Thread.currentThread()) worker = null
-          }
         }
       }
     }, "MirrorX-H264-Queue-Consumer").also {
