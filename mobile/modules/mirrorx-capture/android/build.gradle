@@ -29,6 +29,10 @@ android {
   }
 }
 
+dependencies {
+  testImplementation 'junit:junit:4.13.2'
+}
+
 // Build the shared Rust media crate for Android ABIs before CMake links the JNI
 // shim against the generated libmirrorx_media.so files.
 tasks.register("buildMirrorXRustAndroid", Exec) {
