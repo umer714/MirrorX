@@ -50,4 +50,43 @@ class H264CodecConfigTest {
       H264CodecConfig.toAnnexB(listOf(byteArrayOf(0x65, 0x01)))
     }
   }
+
+  @Test
+  fun acceptsHighProfileAvccWithValidatedSpsExtension() {
+    val avcc = byteArrayOf(
+      1, 100, 0, 31, 0xff.toByte(), 0xe1.toByte(),
+      0, 2, 0x67, 0x64,
+      1, 0, 2, 0x68, 0xee.toByte(),
+      0xfd.toByte(), 0xf8.toByte(), 0xf8.toByte(), 1,
+      0, 2, 0x6d, 0x00
+    )
+    val expected = startCode + byteArrayOf(0x67, 0x64) +
+      startCode + byteArrayOf(0x68, 0xee.toByte())
+    assertArrayEquals(expected, H264CodecConfig.toAnnexB(listOf(avcc)))
+  }
+
+  @Test
+  fun rejectsMalformedHighProfileAvccExtension() {
+    val avcc = byteArrayOf(
+      1, 100, 0, 31, 0xff.toByte(), 0xe1.toByte(),
+      0, 2, 0x67, 0x64,
+      1, 0, 2, 0x68, 0xee.toByte(),
+      0x00, 0xf8.toByte(), 0xf8.toByte(), 0
+    )
+    assertThrows(IllegalArgumentException::class.java) {
+      H264CodecConfig.toAnnexB(listOf(avcc))
+    }
+  }
+
+  @Test
+  fun combinesSeparateCodecConfigBuffers() {
+    val sps = byteArrayOf(0x67, 0x64, 0, 0x1f)
+    val pps = byteArrayOf(0x68, 0xee.toByte())
+    val accumulated = H264CodecConfig.toAnnexB(listOf(sps, pps))
+    assertArrayEquals(
+      startCode + sps + startCode + pps,
+      H264CodecConfig.toAnnexB(listOf(accumulated))
+    )
+  }
+
 }
