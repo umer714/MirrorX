@@ -83,12 +83,15 @@ export class DesktopReceiverSession {
           sdpMid: message.sdp_mid,
           sdpMLineIndex: message.sdp_mline_index,
         };
-        if (!this.remoteDescriptionReady) this.pendingCandidates.push(candidate);
+        if (!this.remoteDescriptionReady) {
+          if (this.pendingCandidates.length >= 256) throw new Error("Too many ICE candidates received before the remote offer");
+          this.pendingCandidates.push(candidate);
+        }
         else await this.peer.addIceCandidate(candidate);
         break;
       }
       case "end_of_candidates":
-        if (this.remoteDescriptionReady) await this.peer.addIceCandidate(null);
+        if (this.remoteDescriptionReady) await this.peer.addIceCandidate();
         break;
       case "close":
         await this.close();
