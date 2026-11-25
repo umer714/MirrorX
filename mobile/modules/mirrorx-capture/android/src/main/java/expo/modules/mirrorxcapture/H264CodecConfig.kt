@@ -37,7 +37,10 @@ internal object H264CodecConfig {
       (data[4].toInt() and 0xfc) == 0xfc && (data[5].toInt() and 0xe0) == 0xe0
 
   private fun isParameterSet(data: ByteArray): Boolean {
-    val type = data[0].toInt() and 0x1f
+    if (data.size < 2) return false
+    val header = data[0].toInt() and 0xff
+    if ((header and 0x80) != 0) return false // forbidden_zero_bit must be zero.
+    val type = header and 0x1f
     return type == 7 || type == 8
   }
 
@@ -55,7 +58,11 @@ internal object H264CodecConfig {
       cursor += 2
       require(length > 0 && cursor + length <= data.size) { "Invalid AVC parameter-set length" }
       val nal = data.copyOfRange(cursor, cursor + length)
-      require((nal[0].toInt() and 0x1f) == expectedType) { "Unexpected AVC parameter-set type" }
+      require(nal.size >= 2) { "Truncated AVC parameter set" }
+      val header = nal[0].toInt() and 0xff
+      require((header and 0x80) == 0 && (header and 0x1f) == expectedType) {
+        "Unexpected or invalid AVC parameter-set header"
+      }
       output.write(startCode)
       output.write(nal)
       cursor += length
