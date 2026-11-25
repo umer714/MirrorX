@@ -7,7 +7,7 @@ This local Expo module starts a user-approved Android screen-capture session thr
 - Opens Android's system consent dialog only after the user taps the capture button.
 - Starts a non-exported foreground service with the `mediaProjection` service type.
 - Creates a VirtualDisplay and feeds it into an Android MediaCodec H.264 encoder.
-- Tracks encoded access units, encoded byte count, keyframes, codec configuration bytes, and capture resolution.
+- Normalizes MediaCodec H.264 codec-specific data (Annex-B, raw SPS/PPS, and AVCDecoderConfigurationRecord) into Annex-B before prefixing parameter sets to IDR frames. Unsupported/malformed codec configuration is surfaced as `INVALID_H264_CODEC_CONFIG` instead of silently killing the drain worker.\n- Tracks encoded access units, encoded byte count, keyframes, codec configuration bytes, and capture resolution.
 - Validates output buffer bounds and counts encoded bytes directly from MediaCodec metadata without allocating a discarded per-frame copy.
 - Shows an ongoing system notification while capture is active.
 - Stops capture resources when the user requests Stop or Android revokes the projection.
