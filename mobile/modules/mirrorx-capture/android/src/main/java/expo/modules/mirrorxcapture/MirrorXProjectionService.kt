@@ -222,17 +222,30 @@ class MirrorXProjectionService : Service() {
             }
           }
         } catch (_: IllegalArgumentException) {
-          // Invalid or unsupported codec-specific data must not silently kill the drain worker.
-          saveLastError("INVALID_H264_CODEC_CONFIG")
-          draining = false
+          // Stop the visible capture session on the main thread after this worker exits.
+          // Calling stopProjection() here would attempt to join the current drain thread.
+          failCaptureFromDrain("INVALID_H264_CODEC_CONFIG")
           break
         } catch (_: IllegalStateException) {
+          if (draining) {
+            failCaptureFromDrain("ENCODER_DRAIN_FAILED")
+          }
           break
         } catch (_: IndexOutOfBoundsException) {
           // A codec may invalidate a buffer during shutdown; skip that output and continue draining.
         }
       }
     }, "MirrorX-H264-Drain").also { it.start() }
+  }
+
+  private fun failCaptureFromDrain(code: String) {
+    draining = false
+    saveLastError(code)
+    Handler(Looper.getMainLooper()).post {
+      // The worker has left its loop before cleanup destroys the native queue.
+      stopProjection()
+      stopSelf()
+    }
   }
 
   private fun saveLastError(code: String) {
