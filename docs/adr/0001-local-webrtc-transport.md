@@ -102,3 +102,9 @@ The current upstream release inspected for the prototype is webrtc-rs **v0.17.3*
 Before integrating the Android encoder, MirrorX must form complete access-unit samples, preserve correct frame durations from MediaCodec presentation timestamps (not one sample per NAL with a guessed duration), normalize the NAL framing to Annex-B, and negotiate H.264 profile/packetization compatibility. Android codec-specific data must be parsed/normalized rather than blindly concatenated if the device reports a non-Annex-B representation. The sender must also consume RTCP feedback and expose transport/queue metrics.
 
 Android capture telemetry now distinguishes encoded frames from native queue outcomes: accepted frames, queue-policy drops (including keyframe recovery), and invalid/push errors. This makes it possible to tell whether capture/encoding is working while the transport sender is still absent. Queue acceptance is not proof of network transmission or remote rendering.
+
+### Desktop WebRTC sender foundation — 2026-11-25
+
+The Windows/Tauri Rust core now pins webrtc-rs **v0.17.3** and includes `src-tauri/src/webrtc_transport.rs`. It creates a real `RTCPeerConnection`, registers the default codec/interceptor pipeline, adds an H.264 `TrackLocalStaticSample`, drains RTCP feedback, creates a gathered local SDP offer, accepts an SDP answer, and exposes a bounded Annex-B access-unit writer. Sample durations are derived from monotonic MediaCodec PTS deltas, with defensive bounds for irregular timestamps.
+
+This is a transport implementation foundation, not an end-to-end product feature yet. It is not exposed through Tauri commands or connected to the Android JNI queue. Authenticated signaling, remote ICE candidate exchange, peer approval, Android-side WebRTC integration, Windows rendering, and real-device interoperability remain outstanding. Do not send SDP to an untrusted peer or enable video until the authenticated pairing/consent layer is wired in.
