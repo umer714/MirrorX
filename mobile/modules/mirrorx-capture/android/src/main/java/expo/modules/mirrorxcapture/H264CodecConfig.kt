@@ -28,6 +28,47 @@ internal object H264CodecConfig {
     return output.toByteArray()
   }
 
+
+  /** Returns true only when an Annex-B access unit contains both SPS and PPS NAL units. */
+  fun hasSpsAndPps(data: ByteArray): Boolean {
+    var hasSps = false
+    var hasPps = false
+    var cursor = 0
+
+    fun startCodeLength(at: Int): Int {
+      if (at + 3 <= data.size && data[at] == 0.toByte() &&
+        data[at + 1] == 0.toByte() && data[at + 2] == 1.toByte()) return 3
+      if (at + 4 <= data.size && data[at] == 0.toByte() &&
+        data[at + 1] == 0.toByte() && data[at + 2] == 0.toByte() &&
+        data[at + 3] == 1.toByte()) return 4
+      return 0
+    }
+
+    while (cursor < data.size) {
+      var prefixLength = 0
+      while (cursor < data.size && prefixLength == 0) {
+        prefixLength = startCodeLength(cursor)
+        if (prefixLength == 0) cursor++
+      }
+      if (prefixLength == 0) break
+      val nalStart = cursor + prefixLength
+      var nextStart = nalStart
+      while (nextStart < data.size && startCodeLength(nextStart) == 0) nextStart++
+      if (nextStart - nalStart >= 2) {
+        val header = data[nalStart].toInt() and 0xff
+        if ((header and 0x80) == 0) {
+          when (header and 0x1f) {
+            7 -> hasSps = true
+            8 -> hasPps = true
+          }
+        }
+      }
+      cursor = nextStart
+      if (hasSps && hasPps) return true
+    }
+    return false
+  }
+
   private fun isAnnexB(data: ByteArray): Boolean =
     data.size >= 4 && data[0] == 0.toByte() && data[1] == 0.toByte() &&
       ((data[2] == 1.toByte()) || (data[2] == 0.toByte() && data[3] == 1.toByte()))
