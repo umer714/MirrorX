@@ -35,6 +35,16 @@ const MAX_ACCESS_UNIT_BYTES: usize = 16 * 1024 * 1024;
 const DEFAULT_FRAME_DURATION: Duration = Duration::from_micros(33_333);
 const MAX_FRAME_DURATION: Duration = Duration::from_millis(250);
 
+fn sample_duration(previous_pts: Option<u64>, pts_micros: u64) -> Result<Duration, String> {
+    match previous_pts {
+        None => Ok(DEFAULT_FRAME_DURATION),
+        Some(last) if pts_micros > last => Ok(Duration::from_micros(
+            (pts_micros - last).clamp(1_000, MAX_FRAME_DURATION.as_micros() as u64),
+        )),
+        Some(_) => Err("H.264 presentation timestamps must increase monotonically.".to_string()),
+    }
+}
+
 /// A WebRTC peer with a negotiated H.264 video sender track.
 pub struct H264WebRtcSender {
     peer: Arc<RTCPeerConnection>,
@@ -156,13 +166,7 @@ impl H264WebRtcSender {
                 .last_pts_micros
                 .lock()
                 .map_err(|_| "H.264 timestamp state is unavailable.".to_string())?;
-            let duration = match *previous {
-                None => DEFAULT_FRAME_DURATION,
-                Some(last) if pts_micros > last => {
-                    Duration::from_micros((pts_micros - last).clamp(1_000, MAX_FRAME_DURATION.as_micros() as u64))
-                }
-                Some(_) => return Err("H.264 presentation timestamps must increase monotonically.".to_string()),
-            };
+            let duration = sample_duration(*previous, pts_micros)?;
             *previous = Some(pts_micros);
             duration
         };
@@ -191,19 +195,23 @@ impl H264WebRtcSender {
 
 #[cfg(test)]
 mod tests {
-    use super::{DEFAULT_FRAME_DURATION, MAX_FRAME_DURATION};
+    use super::{sample_duration, DEFAULT_FRAME_DURATION};
     use std::time::Duration;
 
     #[test]
     fn sender_uses_a_reasonable_initial_frame_duration() {
-        assert_eq!(DEFAULT_FRAME_DURATION, Duration::from_micros(33_333));
+        assert_eq!(sample_duration(None, 42).unwrap(), DEFAULT_FRAME_DURATION);
     }
 
     #[test]
     fn sender_clamps_timestamp_gaps_to_safe_sample_durations() {
-        let long_gap = Duration::from_micros(900_000).min(MAX_FRAME_DURATION);
-        let tiny_gap = Duration::from_micros(100).max(Duration::from_millis(1));
-        assert_eq!(long_gap, Duration::from_millis(250));
-        assert_eq!(tiny_gap, Duration::from_millis(1));
+        assert_eq!(sample_duration(Some(100), 1_000_000).unwrap(), Duration::from_millis(250));
+        assert_eq!(sample_duration(Some(100), 200).unwrap(), Duration::from_millis(1));
+    }
+
+    #[test]
+    fn sender_rejects_duplicate_or_regressing_timestamps() {
+        assert!(sample_duration(Some(100), 100).is_err());
+        assert!(sample_duration(Some(100), 99).is_err());
     }
 }
