@@ -187,10 +187,20 @@ class MirrorXProjectionService : Service() {
                       val isKeyframe = (info.flags and MediaCodec.BUFFER_FLAG_KEY_FRAME) != 0
                       // Prefix codec config to each IDR so a receiver can initialize/recover.
                       val config = codecConfigData
-                      val frameData = if (isKeyframe && config.isNotEmpty()) config + encodedData else encodedData
+                      val configComplete = H264CodecConfig.hasSpsAndPps(config)
+                      val frameHasConfig = isKeyframe && H264CodecConfig.hasSpsAndPps(encodedData)
+                      val frameData = if (isKeyframe && configComplete && !frameHasConfig) {
+                        config + encodedData
+                      } else {
+                        encodedData
+                      }
                       val queueHandle = nativeQueueHandle
-                      if (queueHandle != 0L) {
-                        // Copy encoded H.264 into the bounded Rust queue, outside JavaScript.
+                      if (isKeyframe && !configComplete && !frameHasConfig) {
+                        // Never seed the transport queue with an IDR that has no decoder
+                        // parameter sets. A later keyframe can recover once SPS/PPS arrive.
+                        queueDroppedFrames += 1
+                      } else if (queueHandle != 0L) {
+                        // Copy decodable H.264 access units into the bounded Rust queue.
                         when (MirrorXNativeQueue.nativePush(queueHandle, frameData, isKeyframe, info.presentationTimeUs)) {
                           1 -> queueAcceptedFrames += 1
                           0 -> queueDroppedFrames += 1
