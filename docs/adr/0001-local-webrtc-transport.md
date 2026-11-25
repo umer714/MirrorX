@@ -108,3 +108,8 @@ Android capture telemetry now distinguishes encoded frames from native queue out
 The Windows/Tauri Rust core now pins webrtc-rs **v0.17.3** and includes `src-tauri/src/webrtc_transport.rs`. It creates a real `RTCPeerConnection`, registers the default codec/interceptor pipeline, adds an H.264 `TrackLocalStaticSample`, drains RTCP feedback, creates a gathered local SDP offer, accepts an SDP answer, and exposes a bounded Annex-B access-unit writer. Sample durations are derived from monotonic MediaCodec PTS deltas, with defensive bounds for irregular timestamps.
 
 This is a transport implementation foundation, not an end-to-end product feature yet. It is not exposed through Tauri commands or connected to the Android JNI queue. Authenticated signaling, remote ICE candidate exchange, peer approval, Android-side WebRTC integration, Windows rendering, and real-device interoperability remain outstanding. Do not send SDP to an untrusted peer or enable video until the authenticated pairing/consent layer is wired in.
+
+
+### Android encoded-frame consumer lifecycle hardening — 2026-11-25
+
+The Kotlin queue consumer now uses a generation token in addition to its running flag. This prevents an old worker from continuing to drain after a close-and-restart initiated from a frame callback, and prevents stale worker failures/finalizers from mutating the new worker's state. Shutdown still joins the worker before the native queue owner may destroy its handle. This protects the JNI queue lifecycle only; it does not add a WebRTC transport adapter or start network transmission.
