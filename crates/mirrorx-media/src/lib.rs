@@ -11,6 +11,13 @@ pub enum H264Error {
     NalExceedsAccessUnit,
     MissingAnnexBStartCode,
     EmptyNalUnit,
+    TruncatedAvcConfiguration,
+    InvalidAvcConfigurationVersion,
+    InvalidAvcConfigurationReservedBits,
+    MissingSps,
+    MissingPps,
+    UnexpectedParameterSetType,
+    TrailingAvcConfigurationData,
 }
 
 const ANNEX_B_START_CODE: [u8; 4] = [0, 0, 0, 1];
@@ -140,6 +147,91 @@ pub fn inspect_annex_b(access_unit: &[u8]) -> Result<H264AccessUnitInfo, H264Err
     Ok(info)
 }
 
+
+/// Parsed AVCDecoderConfigurationRecord (ISO/IEC 14496-15).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AvcDecoderConfiguration {
+    /// Number of bytes used by each NAL length in AVCC access units.
+    pub nal_length_size: usize,
+    /// SPS and PPS NAL units, including their NAL headers and without start codes.
+    pub parameter_sets: Vec<Vec<u8>>,
+}
+
+/// Parse an AVCDecoderConfigurationRecord (the common MP4/MediaCodec AVCC CSD form).
+///
+/// The parser is deliberately strict: it validates reserved bits, version, every
+/// length field, and the presence of at least one SPS and PPS. This prevents
+/// malformed codec configuration from being forwarded as if it were Annex-B.
+pub fn parse_avc_decoder_configuration(
+    data: &[u8],
+) -> Result<AvcDecoderConfiguration, H264Error> {
+    if data.len() < 7 {
+        return Err(H264Error::TruncatedAvcConfiguration);
+    }
+    if data[0] != 1 {
+        return Err(H264Error::InvalidAvcConfigurationVersion);
+    }
+    if data[4] & 0xfc != 0xfc || data[5] & 0xe0 != 0xe0 {
+        return Err(H264Error::InvalidAvcConfigurationReservedBits);
+    }
+
+    let nal_length_size = ((data[4] & 0x03) as usize) + 1;
+    let sps_count = (data[5] & 0x1f) as usize;
+    if sps_count == 0 {
+        return Err(H264Error::MissingSps);
+    }
+
+    let mut cursor = 6usize;
+    let mut parameter_sets = Vec::new();
+    for _ in 0..sps_count {
+        let nal = read_avc_parameter_set(data, &mut cursor)?;
+        if nal[0] & 0x1f != 7 {
+            return Err(H264Error::UnexpectedParameterSetType);
+        }
+        parameter_sets.push(nal);
+    }
+
+    let pps_count = *data.get(cursor).ok_or(H264Error::TruncatedAvcConfiguration)? as usize;
+    cursor += 1;
+    if pps_count == 0 {
+        return Err(H264Error::MissingPps);
+    }
+    for _ in 0..pps_count {
+        let nal = read_avc_parameter_set(data, &mut cursor)?;
+        if nal[0] & 0x1f != 8 {
+            return Err(H264Error::UnexpectedParameterSetType);
+        }
+        parameter_sets.push(nal);
+    }
+
+    // High-profile records may append chroma/bit-depth extension fields. They
+    // are not needed for baseline SPS/PPS extraction; reject unexplained tails
+    // rather than silently accepting corrupt/truncated records.
+    if cursor != data.len() {
+        return Err(H264Error::TrailingAvcConfigurationData);
+    }
+
+    Ok(AvcDecoderConfiguration { nal_length_size, parameter_sets })
+}
+
+fn read_avc_parameter_set<'a>(
+    data: &'a [u8],
+    cursor: &mut usize,
+) -> Result<Vec<u8>, H264Error> {
+    let length_bytes = data
+        .get(*cursor..cursor.saturating_add(2))
+        .ok_or(H264Error::TruncatedAvcConfiguration)?;
+    let length = u16::from_be_bytes([length_bytes[0], length_bytes[1]]) as usize;
+    *cursor += 2;
+    if length == 0 {
+        return Err(H264Error::EmptyNalUnit);
+    }
+    let end = cursor.checked_add(length).ok_or(H264Error::TruncatedAvcConfiguration)?;
+    let nal = data.get(*cursor..end).ok_or(H264Error::TruncatedAvcConfiguration)?;
+    *cursor = end;
+    Ok(nal.to_vec())
+}
+
 /// An already encoded H.264 access unit. The payload is owned so it can safely
 /// cross the native capture/transport boundary.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -219,7 +311,7 @@ impl BoundedH264Queue {
 
 #[cfg(test)]
 mod tests {
-    use super::{inspect_annex_b, to_annex_b, BoundedH264Queue, H264Error, H264Frame};
+    use super::{inspect_annex_b, parse_avc_decoder_configuration, to_annex_b, BoundedH264Queue, H264Error, H264Frame};
 
     fn frame(keyframe: bool, pts_micros: u64) -> H264Frame {
         H264Frame {
@@ -250,6 +342,34 @@ mod tests {
         assert_eq!(to_annex_b(&[0], Some(2)), Err(H264Error::TruncatedNalLength));
         assert_eq!(to_annex_b(&[0], Some(1)), Err(H264Error::ZeroLengthNal));
         assert_eq!(to_annex_b(&[3, 0x65], Some(1)), Err(H264Error::NalExceedsAccessUnit));
+    }
+
+
+    #[test]
+    fn parses_avcc_decoder_configuration_and_extracts_sps_pps() {
+        // Version 1, four-byte NAL lengths, one SPS and one PPS.
+        let record = [
+            1, 100, 0, 31, 0xff, 0xe1,
+            0, 3, 0x67, 0x64, 0x1f,
+            1, 0, 2, 0x68, 0xee,
+        ];
+        let parsed = parse_avc_decoder_configuration(&record).unwrap();
+        assert_eq!(parsed.nal_length_size, 4);
+        assert_eq!(parsed.parameter_sets, vec![vec![0x67, 0x64, 0x1f], vec![0x68, 0xee]]);
+    }
+
+    #[test]
+    fn rejects_invalid_or_incomplete_avcc_configuration() {
+        assert_eq!(parse_avc_decoder_configuration(&[]), Err(H264Error::TruncatedAvcConfiguration));
+        let mut bad_version = [1, 100, 0, 31, 0xff, 0xe1, 0, 1, 0x67, 1, 0, 1, 0x68];
+        bad_version[0] = 2;
+        assert_eq!(parse_avc_decoder_configuration(&bad_version), Err(H264Error::InvalidAvcConfigurationVersion));
+
+        let no_sps = [1, 100, 0, 31, 0xff, 0xe0, 0, 1, 0x67, 1, 0, 1, 0x68];
+        assert_eq!(parse_avc_decoder_configuration(&no_sps), Err(H264Error::MissingSps));
+
+        let truncated_sps = [1, 100, 0, 31, 0xff, 0xe1, 0, 4, 0x67];
+        assert_eq!(parse_avc_decoder_configuration(&truncated_sps), Err(H264Error::TruncatedAvcConfiguration));
     }
 
     #[test]
