@@ -168,17 +168,23 @@ class MirrorXProjectionService : Service() {
               try {
                 if (info.size > 0) {
                   val output = codec.getOutputBuffer(index)
-                  if (output != null && (info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG) == 0) {
-                    val bufferEnd = info.offset.toLong() + info.size.toLong()
-                    if (info.offset >= 0 && info.size > 0 && bufferEnd <= output.limit().toLong()) {
-                      val frameBuffer = output.duplicate()
-                      frameBuffer.clear()
-                      frameBuffer.position(info.offset)
-                      frameBuffer.limit(info.offset + info.size)
-                      val encodedData = ByteArray(info.size)
-                      frameBuffer.get(encodedData)
+                  val bufferEnd = info.offset.toLong() + info.size.toLong()
+                  if (output != null && info.offset >= 0 && bufferEnd <= output.limit().toLong()) {
+                    val outputSlice = output.duplicate()
+                    outputSlice.clear()
+                    outputSlice.position(info.offset)
+                    outputSlice.limit(info.offset + info.size)
+                    val encodedData = ByteArray(info.size)
+                    outputSlice.get(encodedData)
+
+                    if ((info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
+                      // Some encoders deliver SPS/PPS as BUFFER_FLAG_CODEC_CONFIG
+                      // buffers instead of (or in addition to) output-format CSD.
+                      codecConfigData = H264CodecConfig.toAnnexB(listOf(codecConfigData, encodedData))
+                      codecConfigBytes = codecConfigData.size
+                      saveStats(true, encodedFrames, encodedBytes, keyFrames, codecConfigBytes, captureWidth, captureHeight)
+                    } else {
                       val isKeyframe = (info.flags and MediaCodec.BUFFER_FLAG_KEY_FRAME) != 0
-                      // MediaCodec often delivers SPS/PPS separately from encoded frames.
                       // Prefix codec config to each IDR so a receiver can initialize/recover.
                       val config = codecConfigData
                       val frameData = if (isKeyframe && config.isNotEmpty()) config + encodedData else encodedData
