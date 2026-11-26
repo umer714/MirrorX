@@ -526,7 +526,8 @@ pub unsafe extern "C" fn mirrorx_h264_queue_free(handle: *mut MirrorXH264QueueHa
 mod ffi_tests {
     use super::{
         mirrorx_h264_queue_free, mirrorx_h264_queue_new, mirrorx_h264_queue_pop,
-        mirrorx_h264_queue_push, FFI_BUFFER_TOO_SMALL, FFI_EMPTY, FFI_INVALID, FFI_OK,
+        mirrorx_h264_queue_push, mirrorx_h264_queue_dropped_frames,
+        mirrorx_h264_queue_waiting_for_keyframe, FFI_BUFFER_TOO_SMALL, FFI_EMPTY, FFI_INVALID, FFI_OK,
     };
 
     #[test]
@@ -559,6 +560,21 @@ mod ffi_tests {
             );
             assert_eq!(&output[..required], &payload);
             assert_eq!(mirrorx_h264_queue_pop(queue, output.as_mut_ptr(), output.len(), &mut required, &mut keyframe, &mut pts), FFI_EMPTY);
+            mirrorx_h264_queue_free(queue);
+        }
+    }
+
+    #[test]
+    fn ffi_queue_exposes_overflow_and_keyframe_recovery_metrics() {
+        unsafe {
+            let queue = mirrorx_h264_queue_new(1);
+            assert_eq!(mirrorx_h264_queue_waiting_for_keyframe(queue), 0);
+            assert_eq!(mirrorx_h264_queue_push(queue, [0x65u8].as_ptr(), 1, true, 1), FFI_OK);
+            assert_eq!(mirrorx_h264_queue_push(queue, [0x41u8].as_ptr(), 1, false, 2), FFI_EMPTY);
+            assert_eq!(mirrorx_h264_queue_dropped_frames(queue), 2);
+            assert_eq!(mirrorx_h264_queue_waiting_for_keyframe(queue), 1);
+            assert_eq!(mirrorx_h264_queue_push(queue, [0x65u8].as_ptr(), 1, true, 3), FFI_OK);
+            assert_eq!(mirrorx_h264_queue_waiting_for_keyframe(queue), 0);
             mirrorx_h264_queue_free(queue);
         }
     }
