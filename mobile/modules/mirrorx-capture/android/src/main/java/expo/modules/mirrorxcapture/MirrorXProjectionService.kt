@@ -308,6 +308,7 @@ class MirrorXProjectionService : Service() {
     }
     drainThread = null
     if (interrupted) Thread.currentThread().interrupt()
+    refreshNativeQueueMetrics()
     val queueHandle = nativeQueueHandle
     nativeQueueHandle = 0L
     if (queueHandle != 0L && MirrorXNativeQueue.ensureLoaded()) {
