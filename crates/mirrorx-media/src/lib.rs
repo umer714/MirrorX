@@ -484,6 +484,34 @@ pub unsafe extern "C" fn mirrorx_h264_queue_pop(
     FFI_OK
 }
 
+/// Return the cumulative number of frames discarded by queue overflow/recovery.
+#[no_mangle]
+pub unsafe extern "C" fn mirrorx_h264_queue_dropped_frames(
+    handle: *mut MirrorXH264QueueHandle,
+) -> u64 {
+    if handle.is_null() {
+        return 0;
+    }
+    let Ok(queue) = (unsafe { &*handle }).inner.lock() else {
+        return 0;
+    };
+    queue.dropped_frames()
+}
+
+/// Return 1 while the queue is waiting for a fresh keyframe, otherwise 0.
+#[no_mangle]
+pub unsafe extern "C" fn mirrorx_h264_queue_waiting_for_keyframe(
+    handle: *mut MirrorXH264QueueHandle,
+) -> i32 {
+    if handle.is_null() {
+        return 0;
+    }
+    let Ok(queue) = (unsafe { &*handle }).inner.lock() else {
+        return 0;
+    };
+    if queue.waiting_for_keyframe() { 1 } else { 0 }
+}
+
 /// Destroy a queue handle created by mirrorx_h264_queue_new. Call exactly once.
 #[no_mangle]
 pub unsafe extern "C" fn mirrorx_h264_queue_free(handle: *mut MirrorXH264QueueHandle) {
