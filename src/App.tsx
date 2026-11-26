@@ -104,11 +104,19 @@ function DesktopApp() {
           <span className="mx-brand-symbol">M<span>.</span></span>
           <span className="mx-brand-name">mirror<span>x</span><small>DEVICE EXPERIENCE PLATFORM</small></span>
         </a>
+        <nav className="mx-sidebar-nav" aria-label="Workspace navigation">
+          <span className="sidebar-nav-label">WORKSPACE</span>
+          <a className="sidebar-nav-link active" href="#overview"><span>▦</span> Overview <b>01</b></a>
+          <a className="sidebar-nav-link" href="#connect"><span>⌁</span> Devices <b>{connectedCount.toString().padStart(2,"0")}</b></a>
+          <a className="sidebar-nav-link" href="#platforms"><span>◈</span> Platforms</a>
+          <span className="sidebar-nav-label sidebar-nav-label-bottom">YOUR WORKSPACE</span>
+          <div className="sidebar-workspace-card"><span className="workspace-avatar">MX</span><div><strong>Personal setup</strong><small>Local workspace</small></div><i /></div>
+        </nav>
         <div className="mx-header-center"><span className="header-live-dot" /> PRIVATE WORKSPACE <i /> WINDOWS DESKTOP</div>
         <div className="mx-header-right"><span className="header-status">{scrcpyRunning ? "SESSION ACTIVE" : "READY WHEN YOU ARE"}</span><span className="mx-avatar">MX</span></div>
       </header>
 
-      <div className="mx-main">
+      <div className="mx-main" id="overview">
         <section className="mx-intro">
           <div className="mx-breadcrumb">WORKSPACE <span>/</span> DEVICE STUDIO</div>
           <div className="mx-intro-row">
@@ -116,6 +124,11 @@ function DesktopApp() {
               <p className="mx-lede">A focused workspace for bringing your Android screen to your Windows desktop. Connect locally, stay in control.</p>
             </div>
             <div className="mx-intro-meta"><span className="meta-label">CURRENT WORKSPACE</span><strong>Personal setup</strong><span className="meta-divider"/><span className="meta-label">CONNECTION</span><strong>{connectedCount ? `${connectedCount} device ready` : "No device connected"}</strong></div>
+          </div>
+          <div className="mx-workspace-metrics">
+            <div className="workspace-metric"><span className="metric-icon">⌁</span><div><small>CONNECTED DEVICES</small><strong>{connectedCount.toString().padStart(2,"0")}</strong><span>{connectedCount ? "Ready to mirror" : "Waiting for device"}</span></div></div>
+            <div className="workspace-metric"><span className="metric-icon">◉</span><div><small>CONNECTION MODE</small><strong>{mode === "usb" ? "USB" : "Wireless"}</strong><span>Choose your connection</span></div></div>
+            <div className="workspace-metric"><span className="metric-icon">◇</span><div><small>SESSION STATUS</small><strong>{scrcpyRunning ? "Active" : "Standby"}</strong><span>{scrcpyRunning ? "Mirroring is running" : "No active session"}</span></div></div>
           </div>
         </section>
 
