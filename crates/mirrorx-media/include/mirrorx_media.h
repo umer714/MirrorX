@@ -27,6 +27,8 @@ int32_t mirrorx_h264_queue_pop(
     bool *out_keyframe,
     uint64_t *out_pts_micros
 );
+uint64_t mirrorx_h264_queue_dropped_frames(MirrorXH264QueueHandle *handle);
+int32_t mirrorx_h264_queue_waiting_for_keyframe(MirrorXH264QueueHandle *handle);
 void mirrorx_h264_queue_free(MirrorXH264QueueHandle *handle);
 
 enum {
