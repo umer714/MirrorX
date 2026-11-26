@@ -72,6 +72,21 @@ Java_expo_modules_mirrorxcapture_MirrorXNativeQueue_nativePop(
   return frame;
 }
 
+extern "C" JNIEXPORT jlong JNICALL
+Java_expo_modules_mirrorxcapture_MirrorXNativeQueue_nativeDroppedFrames(
+    JNIEnv*, jclass, jlong handle) {
+  if (handle == kInvalidHandle) return 0;
+  return static_cast<jlong>(mirrorx_h264_queue_dropped_frames(from_handle(handle)));
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_expo_modules_mirrorxcapture_MirrorXNativeQueue_nativeWaitingForKeyframe(
+    JNIEnv*, jclass, jlong handle) {
+  if (handle == kInvalidHandle) return JNI_FALSE;
+  return mirrorx_h264_queue_waiting_for_keyframe(from_handle(handle)) == 1
+      ? JNI_TRUE : JNI_FALSE;
+}
+
 extern "C" JNIEXPORT void JNICALL
 Java_expo_modules_mirrorxcapture_MirrorXNativeQueue_nativeDestroy(
     JNIEnv*, jclass, jlong handle) {
