@@ -33,5 +33,7 @@ internal object MirrorXNativeQueue {
   @JvmStatic external fun nativeCreate(capacity: Int): Long
   @JvmStatic external fun nativePush(queue: Long, data: ByteArray, keyframe: Boolean, ptsMicros: Long): Int
   @JvmStatic external fun nativePop(queue: Long, maxBytes: Int): MirrorXEncodedFrame?
+  @JvmStatic external fun nativeDroppedFrames(queue: Long): Long
+  @JvmStatic external fun nativeWaitingForKeyframe(queue: Long): Boolean
   @JvmStatic external fun nativeDestroy(queue: Long)
 }
