@@ -1,6 +1,6 @@
 # MirrorX — Development Roadmap
 
-A milestone is complete only after its features are implemented and tested. A successful Vercel web build does not mean the Windows desktop app or mirroring engine is complete.
+A milestone is complete only after its features are implemented and tested. A successful Vercel web build does not mean the desktop app or live mirroring engine is complete.
 
 ## Milestone 0 — Repository and web foundation
 
@@ -35,31 +35,52 @@ A milestone is complete only after its features are implemented and tested. A su
 - [x] Add Stop Session command.
 - [x] Add selected-device Start / Stop controls to the UI.
 - [x] Add Windows GitHub Actions build and Rust test checks.
-- [ ] Run the Windows CI workflow successfully.
+- [x] Run the latest Windows CI workflow successfully.
 - [ ] Test start, stop, disconnect, and app-exit behavior with a real phone.
+- [x] Add ADB Wireless debugging pair and connect commands with IP/port validation.
+- [x] Add desktop wireless pairing and connection form.
+- [ ] Test wireless pairing and reconnect behavior with a real Android phone.
 - [ ] Embed the mirrored screen inside the MirrorX dashboard (currently separate scrcpy window).
 
-## Milestone 4 — Interaction and reliability
+## Milestone 4 — Android capture foundation
 
-- [ ] Verify mouse and keyboard interaction.
-- [ ] Add reconnect guidance.
-- [ ] Test multiple connected devices and explicit device selection.
-- [ ] Test common USB connection failures.
+- [x] Request Android's official MediaProjection consent.
+- [x] Start a visible, non-exported mediaProjection foreground service.
+- [x] Create a VirtualDisplay and H.264 MediaCodec encoder.
+- [x] Report local encoder access-unit, byte, keyframe, and resolution statistics.
+- [x] Surface native encoder failures to the mobile UI.
+- [ ] Test capture start, stop, revocation, and device rotation on real Android hardware.
 
-## Milestone 5 — Optional capabilities
+## Milestone 5 — Secure local transport and receiver
 
-- [ ] Evaluate wireless connection workflow.
-- [ ] Evaluate screenshots and recording.
-- [ ] Evaluate clipboard support.
-- [ ] Evaluate multi-device sessions.
-- [ ] Review privacy implications before enabling each feature.
+- [x] Select a shared Rust WebRTC transport for the prototype (ADR-0001); Android build/interoperability gate remains.
+- [ ] Implement short-lived authenticated signaling and user-approved pairing flow.
+- [ ] Implement local peer discovery / connection setup.
+- [x] Add shared H.264 Annex-B normalization, IDR/SPS/PPS inspection, and bounded keyframe-aware queue primitives with desktop CI coverage.
+- [x] Export a thread-safe C ABI and header for native H.264 queue access; test frame copying, queue-empty behavior, invalid inputs, and output-buffer backpressure.
+- [x] Add Kotlin JNI wrapper and C++ shim for the shared native H.264 queue.
+- [x] Add Gradle/CMake integration and Cargo NDK build script for arm64-v8a, armeabi-v7a, and x86_64.
+- [x] Connect Android MediaCodec output to the shared bounded three-frame Rust queue.
+- [ ] Validate Android ABI builds and JNI loading in Android APK CI.
+- [ ] Add a WebRTC consumer/sender for the queued H.264 frames with keyframe recovery and backpressure.
+- [ ] Implement Windows receiver and live playback.
+- [ ] Add disconnect, reconnect, timeout, and session revocation handling.
+- [ ] Test end-to-end on a real Android phone and Windows PC.
 
-## Milestone 6 — Release preparation
+## Milestone 6 — Remote controller and iOS
+
+- [ ] Implement explicitly approved, authenticated remote input.
+- [ ] Add touchpad, keyboard, and constrained shortcut controls.
+- [ ] Implement iOS ReplayKit broadcast extension.
+- [ ] Build and test iOS with macOS, Xcode, and Apple signing.
+- [ ] Verify platform-specific permissions and lifecycle behavior.
+
+## Milestone 7 — Release preparation
 
 - [ ] Choose and document project licensing.
 - [ ] Audit third-party licenses and notices.
 - [ ] Add automated tests and build checks.
-- [ ] Package and test a Windows installer.
+- [ ] Package and test a Windows installer and Android build.
 - [ ] Add release notes, support guidance, and security reporting instructions.
 
 ## Release rule

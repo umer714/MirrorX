@@ -1,0 +1,45 @@
+apply plugin: 'com.android.library'
+apply plugin: 'expo-module-gradle-plugin'
+
+group = 'expo.modules.mirrorxcapture'
+version = '0.1.0'
+
+android {
+  namespace "expo.modules.mirrorxcapture"
+  defaultConfig {
+    minSdkVersion 24
+    // The Rust media core is currently compiled for these supported Android
+    // ABIs. Restrict CMake to the same set so Gradle does not request x86,
+    // for which no libmirrorx_media.so is produced.
+    ndk {
+      abiFilters "arm64-v8a", "armeabi-v7a", "x86_64"
+    }
+    externalNativeBuild {
+      cmake {
+        cppFlags "-std=c++17"
+      }
+    }
+  }
+
+  externalNativeBuild {
+    cmake {
+      path "src/main/cpp/CMakeLists.txt"
+      version "3.22.1"
+    }
+  }
+}
+
+dependencies {
+  testImplementation 'junit:junit:4.13.2'
+}
+
+// Build the shared Rust media crate for Android ABIs before CMake links the JNI
+// shim against the generated libmirrorx_media.so files.
+tasks.register("buildMirrorXRustAndroid", Exec) {
+  workingDir rootProject.projectDir.parentFile.parentFile
+  commandLine "bash", "mobile/scripts/build-android-native.sh"
+}
+
+tasks.named("preBuild").configure {
+  dependsOn("buildMirrorXRustAndroid")
+}

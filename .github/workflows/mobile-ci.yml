@@ -1,0 +1,38 @@
+name: MirrorX mobile checks
+
+on:
+  push:
+    branches: [main, feature/mobile-apps]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile-ci.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile-ci.yml"
+  workflow_dispatch:
+
+jobs:
+  mobile-checks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install mobile dependencies
+        run: npm install
+
+      - name: Type-check mobile app
+        run: npm run typecheck
+
+      - name: Validate Expo configuration
+        run: npx expo config --type public

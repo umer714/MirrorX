@@ -3,6 +3,7 @@ node_modules/
 .pnpm-store/
 
 # Build output
+mobile/modules/mirrorx-capture/android/src/main/jniLibs/
 dist/
 build/
 target/
