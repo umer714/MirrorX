@@ -15,3 +15,10 @@
 .mx-video-receiver__empty{position:absolute;color:#777187;font-size:13px}
 .mx-video-receiver__stage button{position:absolute;right:12px;bottom:12px;border:1px solid #51466e;border-radius:8px;background:rgba(16,14,26,.88);color:#eee;padding:7px 11px;font-size:11px}
 .mx-video-receiver__stage button:disabled{opacity:.4}
+
+/* Clear browser-to-desktop boundary for device access. */
+.desktop-required{display:flex;align-items:flex-start;gap:13px;margin:18px 0 4px;padding:16px 17px;border:1px solid rgba(169,149,255,.24);border-left:2px solid #a995ff;background:linear-gradient(110deg,rgba(169,149,255,.10),rgba(169,149,255,.035));}
+.desktop-required-icon{width:30px;height:30px;flex:0 0 30px;display:grid;place-items:center;border:1px solid rgba(169,149,255,.25);color:#c5baff;background:rgba(169,149,255,.09);font-size:15px;}
+.desktop-required strong{display:block;color:#e9e5fb;font-size:11px;font-weight:700;}
+.desktop-required p{margin:6px 0 0;color:#a5a7b8;font-size:10px;line-height:1.7;}
+.desktop-action-hint{margin:13px 0 0;padding:10px 12px;border:1px solid var(--line);color:#a9a5bf;background:rgba(169,149,255,.045);font-size:9px;line-height:1.65;}
