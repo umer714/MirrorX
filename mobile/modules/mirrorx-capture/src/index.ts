@@ -13,6 +13,8 @@ export type CaptureStats = {
   queueAcceptedFrames: number;
   queueDroppedFrames: number;
   queuePushErrors: number;
+  nativeQueueDroppedFrames: number;
+  waitingForKeyframe: boolean;
   codecConfigBytes: number;
   width: number;
   height: number;
@@ -54,5 +56,5 @@ export function stopProjectionSession(): boolean {
 }
 
 export function getCaptureStats(): CaptureStats {
-  return nativeModule?.getCaptureStats() ?? { active: false, frames: 0, encodedBytes: 0, keyFrames: 0, queueAcceptedFrames: 0, queueDroppedFrames: 0, queuePushErrors: 0, codecConfigBytes: 0, width: 0, height: 0, lastError: "" };
+  return nativeModule?.getCaptureStats() ?? { active: false, frames: 0, encodedBytes: 0, keyFrames: 0, queueAcceptedFrames: 0, queueDroppedFrames: 0, queuePushErrors: 0, nativeQueueDroppedFrames: 0, waitingForKeyframe: false, codecConfigBytes: 0, width: 0, height: 0, lastError: "" };
 }
