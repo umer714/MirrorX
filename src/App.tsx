@@ -9,6 +9,7 @@ type AndroidDevice = {
 };
 
 function DesktopApp() {
+  const desktopAvailable = isTauri();
   const [mode, setMode] = useState<ConnectionMode>("usb");
   const [devices, setDevices] = useState<AndroidDevice[]>([]);
   const [selectedSerial, setSelectedSerial] = useState("");
@@ -144,11 +145,17 @@ function DesktopApp() {
                 <button className={mode === "usb" ? "method-tab active" : "method-tab"} onClick={() => setMode("usb")} role="tab" aria-selected={mode === "usb"}><span>⌁</span> USB cable <small>RECOMMENDED</small></button>
                 <button className={mode === "wireless" ? "method-tab active" : "method-tab"} onClick={() => setMode("wireless")} role="tab" aria-selected={mode === "wireless"}><span>⌁</span> Wireless</button>
               </div>
+              {!desktopAvailable && <div className="desktop-required" role="status">
+                <span className="desktop-required-icon">↗</span>
+                <div><strong>Continue in the Windows desktop app</strong><p>USB discovery and wireless ADB pairing need Windows hardware access. This browser page can show the setup steps, but it cannot scan or connect to your phone.</p></div>
+              </div>}
               {mode === "usb" ? (
                 <div className="mx-form-content">
                   <div className="mx-instruction"><span className="instruction-icon">01</span><div><strong>Connect your phone</strong><p>Use a data-capable USB cable and connect your Android device to your Windows PC.</p></div></div>
                   <div className="mx-instruction"><span className="instruction-icon">02</span><div><strong>Allow USB debugging</strong><p>Enable Developer options → USB debugging, then approve the computer on your phone.</p></div></div>
-                  <button className="mx-primary-button" onClick={detectDevices} disabled={scanning}>{scanning ? "Scanning devices…" : "Detect connected devices"} <span>↗</span></button>
+                  {desktopAvailable
+                    ? <button className="mx-primary-button" onClick={detectDevices} disabled={scanning}>{scanning ? "Scanning devices…" : "Detect connected devices"} <span>↗</span></button>
+                    : <p className="desktop-action-hint">Open MirrorX on Windows to detect your USB-connected Android device.</p>}
                   {scanError && <div className="scan-message error" role="alert">{scanError}</div>}
                   {hasScanned && devices.length === 0 && <div className="scan-message" role="status">No devices found. Check your cable, USB debugging and phone authorization, then try again.</div>}
                   {devices.length > 0 && <div className="device-list" aria-live="polite"><div className="device-list-heading">DETECTED DEVICES · SELECT ONE</div>
@@ -171,9 +178,9 @@ function DesktopApp() {
                   <div className="wireless-form">
                     <label>PHONE IP ADDRESS<input value={wirelessHost} onChange={(event) => setWirelessHost(event.target.value)} placeholder="192.168.1.25" autoComplete="off"/></label>
                     <div className="wireless-fields"><label>PAIRING PORT<input value={pairingPort} onChange={(event) => setPairingPort(event.target.value)} placeholder="Pairing port" inputMode="numeric"/></label><label>6-DIGIT PAIRING CODE<input value={pairingCode} onChange={(event) => setPairingCode(event.target.value)} placeholder="123456" inputMode="numeric" maxLength={6}/></label></div>
-                    <button className="mx-primary-button" onClick={pairWirelessDevice} disabled={wirelessBusy || !wirelessHost.trim() || !pairingPort || pairingCode.length !== 6}>{wirelessBusy ? "Please wait…" : "Pair this device"} <span>↗</span></button>
+                    <button className="mx-primary-button" onClick={pairWirelessDevice} disabled={!desktopAvailable || wirelessBusy || !wirelessHost.trim() || !pairingPort || pairingCode.length !== 6}>{wirelessBusy ? "Please wait…" : "Pair this device"} <span>↗</span></button>
                     <label>CONNECTION PORT<input value={connectionPort} onChange={(event) => setConnectionPort(event.target.value)} placeholder="Connection port shown separately" inputMode="numeric"/></label>
-                    <button className="secondary-button" onClick={connectWirelessDevice} disabled={wirelessBusy || !wirelessHost.trim() || !connectionPort}>{wirelessBusy ? "Please wait…" : "Connect over Wi-Fi"}</button>
+                    <button className="secondary-button" onClick={connectWirelessDevice} disabled={!desktopAvailable || wirelessBusy || !wirelessHost.trim() || !connectionPort}>{wirelessBusy ? "Please wait…" : "Connect over Wi-Fi"}</button>
                     {wirelessMessage && <div className="scan-message" role="status">{wirelessMessage}</div>}
                     <p className="device-note">Android provides separate pairing and connection ports. Enter the exact values shown in Wireless debugging. Pairing uses ADB's authenticated flow.</p>
                   </div>
