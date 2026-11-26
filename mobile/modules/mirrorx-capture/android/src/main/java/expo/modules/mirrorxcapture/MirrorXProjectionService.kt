@@ -33,6 +33,8 @@ class MirrorXProjectionService : Service() {
   @Volatile private var queueAcceptedFrames = 0L
   @Volatile private var queueDroppedFrames = 0L
   @Volatile private var queuePushErrors = 0L
+  @Volatile private var nativeQueueDroppedFrames = 0L
+  @Volatile private var waitingForKeyframe = false
   private var codecConfigBytes = 0
   @Volatile private var codecConfigData = ByteArray(0)
   private var captureWidth = 0
@@ -99,6 +101,8 @@ class MirrorXProjectionService : Service() {
       queueAcceptedFrames = 0L
       queueDroppedFrames = 0L
       queuePushErrors = 0L
+      nativeQueueDroppedFrames = 0L
+      waitingForKeyframe = false
       codecConfigBytes = 0
       codecConfigData = ByteArray(0)
 
@@ -259,7 +263,15 @@ class MirrorXProjectionService : Service() {
     else -> "CAPTURE_START_FAILED"
   }
 
+  private fun refreshNativeQueueMetrics() {
+    val handle = nativeQueueHandle
+    if (handle == 0L || !MirrorXNativeQueue.ensureLoaded()) return
+    nativeQueueDroppedFrames = MirrorXNativeQueue.nativeDroppedFrames(handle)
+    waitingForKeyframe = MirrorXNativeQueue.nativeWaitingForKeyframe(handle)
+  }
+
   private fun saveStats(active: Boolean, frames: Long, bytes: Long, keyFrames: Long, configBytes: Int, width: Int, height: Int) {
+    refreshNativeQueueMetrics()
     getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
       .putBoolean(KEY_ACTIVE, active)
       .putLong(KEY_FRAMES, frames)
@@ -268,6 +280,8 @@ class MirrorXProjectionService : Service() {
       .putLong(KEY_QUEUE_ACCEPTED_FRAMES, queueAcceptedFrames)
       .putLong(KEY_QUEUE_DROPPED_FRAMES, queueDroppedFrames)
       .putLong(KEY_QUEUE_PUSH_ERRORS, queuePushErrors)
+      .putLong(KEY_NATIVE_QUEUE_DROPPED_FRAMES, nativeQueueDroppedFrames)
+      .putBoolean(KEY_WAITING_FOR_KEYFRAME, waitingForKeyframe)
       .putInt(KEY_CODEC_CONFIG_BYTES, configBytes)
       .putInt(KEY_WIDTH, width)
       .putInt(KEY_HEIGHT, height)
@@ -354,6 +368,8 @@ class MirrorXProjectionService : Service() {
     const val KEY_QUEUE_ACCEPTED_FRAMES = "queue_accepted_frames"
     const val KEY_QUEUE_DROPPED_FRAMES = "queue_dropped_frames"
     const val KEY_QUEUE_PUSH_ERRORS = "queue_push_errors"
+    const val KEY_NATIVE_QUEUE_DROPPED_FRAMES = "native_queue_dropped_frames"
+    const val KEY_WAITING_FOR_KEYFRAME = "waiting_for_keyframe"
     const val KEY_CODEC_CONFIG_BYTES = "codec_config_bytes"
     const val KEY_WIDTH = "width"
     const val KEY_HEIGHT = "height"
